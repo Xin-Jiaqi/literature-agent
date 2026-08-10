@@ -30,7 +30,7 @@ def _arxiv_range(from_date, to_date):
     for cat in cats:
         start = 0
         while start < 6000:
-            q = (f"http://export.arxiv.org/api/query?search_query=cat:{cat}"
+            q = (f"https://export.arxiv.org/api/query?search_query=cat:{cat}"
                  f"+AND+submittedDate:[{from_date}0000+TO+{to_date}2359]"
                  f"&sortBy=submittedDate&sortOrder=descending&start={start}&max_results=200")
             try:

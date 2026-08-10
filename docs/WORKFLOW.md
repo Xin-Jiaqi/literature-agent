@@ -12,7 +12,7 @@
 
 前台与后台严格分离：
 
-- 后台自动：collect → dedup → screen → live MUST 自动 A → historical worker 空闲补 A → digest。
+- 后台自动：collect → dedup → screen → PDF/SI → A job 准备（live MUST 优先，historical 空闲补）→ digest；A 的生成由 Codex/ChatGPT executor 完成（`a-job` 只是生成任务清单，不等于已执行 A）。
 - 自动完成的 A 正式存放：`Literatures/每日文献/_文献包/<work_id>/`（A.md + paper.pdf），不再投递 `0_待处理`。
 - 前台只有：打开每日总览 → 勾选决定/标记/批注 → `sync-overview`（或 daily 自动同步）；`save_zotero`、`competitor` 是可叠加标签。
 - `0_待处理` 只表示用户明确选择“稍后”的论文；`1_处理中`=read；`00-已阅`=ignore。
@@ -64,14 +64,14 @@ flowchart TD
 
 | 队列 | 内容 | A 是否自动 |
 |---|---|---|
-| live_must | 今天新发现的 MUST | 立即执行 A（最高优先，计入今日 MUST 数） |
-| historical_recovery | 历史 replay 找回的重要论文 | 后台空闲时补 A；不计入今日 MUST、不阻塞 live |
+| live_must | 今天新发现的 MUST | 立即进入 A 队列（最高优先，计入今日 MUST 数）；由 executor 完成 A |
+| historical_recovery | 历史 replay 找回的重要论文 | 空闲时补 A 队列；不计入今日 MUST、不阻塞 live |
 | weekly | 本周候选 | 不自动执行 A（除非以后升级） |
 
 A worker 协议（`la_aworker.py` + `a_jobs/`）：
 
-1. `python3 literature_agent.py a-job [--kind all]` 生成一次任务清单（job 文件）。
-2. 一次任务自动逐篇消费整个队列：PDF/SI 验证 → 读取全文 → 按 A Skill 生成完整 A → 内容校验 → `a-complete` → 投递 `0_待处理`。
+1. `python3 literature_agent.py a-job [--kind all]` 只生成一次任务清单（job 文件），**不等于已执行 A**；Codex/ChatGPT executor 消费该清单逐篇完成。
+2. 一次任务逐篇消费整个队列：PDF/SI 验证 → 读取全文 → 按 A Skill 生成完整 A → 内容校验 → `a-complete` → 发布到 `每日文献/_文献包/<work_id>/`（A.md + paper.pdf，不投递 `0_待处理`）。
 3. 不逐篇等待用户确认；模板不算完成；PDF 无法读取 / SI 缺失如实标注，不伪造。
 4. `a-job-status` 查看逐篇进度。
 
@@ -121,18 +121,18 @@ daily/ 下的 v4 简报仍保留四个用户向小节，不暴露后台工程状
 - historical backlog
 - 用户 Inbox backlog
 
-## 八、当前状态快照（2026-08-10 11:05 刷新，来源 state/PROJECT_STATE.json）
+## 八、当前状态快照（2026-08-10 12:37 刷新，来源 state/PROJECT_STATE.json）
 
 | 指标 | 值 |
 |---|---|
-| works | 6199（历史回放 4425，无损） |
+| works | 6441（历史回放 4425，无损；数字随 daily 增长） |
 | live MUST | 总数 2｜A 完成 2｜backlog 0 |
 | A 工作流 | 已完成 13｜排队 0｜PDF 阻塞 1 |
 | historical recovery | 总数 12｜完成 11｜backlog 0 |
 | weekly 候选 | 29（不自动 A） |
-| Obsidian 笔记 | 文献包 9（未决定）｜processing 4（read）｜inbox 1（旧人工笔记）｜callable 7 |
-| 用户已决定 | 4（全部 read → 1_处理中）；等待决定 9 |
-| 最近运行 | daily / ok / 20260810-105509 |
+| Obsidian 笔记 | 文献包 11（未决定）｜processing 2（read）｜inbox 1（旧人工笔记）｜callable 7 |
+| 用户已决定 | 2（全部 read → 1_处理中）；等待决定 11 |
+| 最近运行 | daily --force / ok / 20260810-1235 |
 
 ## 九、一次完整日常循环（命令序列）
 
@@ -149,7 +149,7 @@ python3 literature_agent.py handoff          # 刷新接手状态
 
 ## 十、A/B/C/D 衔接契约
 
-1. A：只基于实际取得的正文/SI 生成完整建档；完成后安全投递到 `0_待处理`，不得把模板当完成。
+1. A：只基于实际取得的正文/SI 生成完整建档；完成后发布到 `每日文献/_文献包/<work_id>/`（不投递 `0_待处理`），不得把模板当完成。
 2. 用户决定 `read`：笔记进入 `1_处理中`，随后可围绕原文持续问答；B 只追加本轮新增讨论总结。
 3. C：融合 A 与历次 B，形成成熟笔记；只有用户明确确认后才移动到 `2-可调用`。
 4. D：从成熟 C 派生论文、汇报或公开内容；不得反向改写 C 的事实底稿。

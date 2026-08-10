@@ -31,7 +31,7 @@
    "publisher": "American Physical Society",
    "journal": null,
    "type": "rss",
-   "role": "metadata_update",
+   "role": "discovery",
    "priority": 20,
    "enabled": true,
    "supports_backfill": false,
@@ -53,14 +53,14 @@
      "parser": "rss1"
     }
    ],
-   "notes": "APS RSS ~100 items limit; backfill coverage incomplete by design; abstracts often truncated -> enrichment L2/L3"
+   "notes": "APS RSS ~100 items limit; backfill coverage incomplete by design; abstracts often truncated -> enrichment L2/L3 role=discovery：accepted 是提前发现入口（已真实命中多篇 MUST）。"
   },
   {
    "id": "aps_published",
    "publisher": "American Physical Society",
    "journal": null,
    "type": "rss",
-   "role": "journal",
+   "role": "metadata_update",
    "priority": 30,
    "enabled": true,
    "supports_backfill": false,
@@ -82,7 +82,7 @@
      "parser": "rss1"
     }
    ],
-   "notes": "Full abstracts; PRM added v1"
+   "notes": "Full abstracts; PRM added v1 role=metadata_update：更新已发现 work 的正式出版状态；首次直接发现时仍作 discovery fallback。"
   },
   {
    "id": "npj_rss",

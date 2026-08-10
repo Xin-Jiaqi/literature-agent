@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""literature-agent v1 来源注册表（sources.json 读取与旧式 SOURCES 结构兼容层）。
+"""literature-agent 来源注册表（sources.json 读取与旧式 SOURCES 结构兼容层）。
 
 role: discovery | metadata_update | preprint | journal
 priority 仅用于同等级排序与 digest 展示，不参与 MUST/WEEKLY 判定。
@@ -17,7 +17,7 @@ def registry_path():
 
 # 旧式硬编码兜底（sources.json 缺失时使用，保证脚本永不因配置丢失崩溃）
 FALLBACK_SOURCES = {
-    "arxiv": {"kind": "api", "url": "http://export.arxiv.org/api/query",
+    "arxiv": {"kind": "api", "url": "https://export.arxiv.org/api/query",
               "params": {"cats": ["cond-mat.mtrl-sci", "cond-mat.mes-hall", "cond-mat.str-el", "physics.comp-ph"],
                          "days": 7, "max_results": 300}},
     "aps_accepted": {"kind": "rss", "feeds": {

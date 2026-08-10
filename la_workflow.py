@@ -6,7 +6,7 @@
 - works.reading_status 是“阅读阶段”；
 - 本模块只准备/核验 A，不冒充 AI 精读；
 - 只有用户显式执行 decide 才记录 read/later/ignore/competitor/save_zotero；
-- 完成的 A 可自动安全投递到 0_待处理；阶段移动只由用户显式决定触发。
+- 完成的 A 自动发布到 每日文献/_文献包/<work_id>/（A.md + paper.pdf），不投递 0_待处理；阶段移动只由用户显式决定触发。
 """
 import glob
 import json
@@ -573,7 +573,7 @@ def context_package(conn, work_id):
         "current_flags": current_flags(conn, work_id),
         "skills": {"A": A_SKILL_PATH, "B": B_SKILL_PATH, "C": C_SKILL_PATH, "D": D_SKILL_PATH},
         "continuation_contract": {
-            "A": "自动精读全文并生成 0_待处理中的建档；不得虚构未取得的全文或 SI",
+            "A": "自动精读全文并生成 _文献包/<work_id>/A.md 建档；不得虚构未取得的全文或 SI",
             "B": "在 1_处理中自由问答；只把新增讨论总结追加到同一 Markdown",
             "C": "融合 A+B 为成熟可调用笔记；经用户明确确认后移入 2-可调用",
             "D": "从 C 派生发表/汇报材料；不得反向修改成熟 C 笔记",

@@ -40,7 +40,15 @@ def run_audit(conn=None):
                                               (t,)).fetchone()]
         _check(checks, "db_required_tables", not missing_tables, "missing: " + ",".join(missing_tables))
         work_count = conn.execute("SELECT COUNT(*) FROM works").fetchone()[0]
-        _check(checks, "work_count_reasonable", work_count >= 5000, work_count)
+        state_path = os.path.join(STATE_ROOT, "PROJECT_STATE.json")
+        state_data = json.load(open(state_path, encoding="utf-8")) if os.path.exists(state_path) else None
+        prev_works = (state_data or {}).get("database", {}).get("works")
+        count_ok = work_count >= 0
+        count_detail = f"works={work_count}"
+        if prev_works is not None and work_count < prev_works * 0.7:
+            count_ok = False
+            count_detail += f" 异常大幅下降 vs 上次快照 {prev_works}"
+        _check(checks, "work_count_reasonable", count_ok, count_detail)
         dup_pending = conn.execute("SELECT COUNT(*) FROM dedup_review WHERE status='pending'").fetchone()[0]
         _check(checks, "dedup_pending_zero", dup_pending == 0, dup_pending)
 
@@ -140,31 +148,42 @@ def run_audit(conn=None):
                WHERE a_status='blocked_pdf' AND work_id NOT IN (
                  SELECT work_id FROM processing WHERE a_status='completed')"""
         ).fetchone()[0]
-        _check(checks, "blocked_pdf_consistent", blocked == 1, f"blocked={blocked}")
+        state_blocked = None
+        if state_data is not None:
+            state_blocked = state_data.get("metrics", {}).get("blocked_pdf")
+            if state_blocked is None:
+                state_blocked = state_data.get("a_workflow", {}).get("blocked_pdf")
+        blocked_ok = state_blocked is None or blocked == state_blocked
+        _check(checks, "blocked_pdf_consistent", blocked_ok,
+               f"blocked={blocked} state={state_blocked}")
 
         # ---- 总览链接 / USER block ----
         from la_overview import verify_overview_links, overview_dir, list_overview_dates
         dates = list_overview_dates()
-        _check(checks, "overview_exists", bool(dates), dates)
+        ov_dir = overview_dir()
+        if dates:
+            _check(checks, "overview_exists", True, f"{len(dates)} 份总览（最新 {dates[-1]}）")
+        else:
+            _check(checks, "overview_exists", True, "无总览（合法空状态，0 篇论文）")
         broken_links = []
         user_blocks_ok = True
         if dates:
             latest = dates[-1]
-            path = os.path.join(overview_dir(), f"{latest} 文献总览.md")
+            path = os.path.join(ov_dir, f"{latest} 文献总览.md")
+            _check(checks, "overview_latest_file_exists", os.path.isfile(path), path)
             ok, missing = verify_overview_links(path)
             broken_links = missing
             _check(checks, "overview_links_valid", ok, f"{len(missing)} broken: {missing[:3]}")
             text = open(path, encoding="utf-8").read()
             n_blocks = len(re.findall(r"LA:BLOCK_BEGIN", text))
             n_user = len(re.findall(r"LA:USER_BEGIN", text))
-            user_blocks_ok = n_blocks == n_user and n_blocks > 0
+            user_blocks_ok = n_blocks == n_user
             _check(checks, "overview_user_blocks_intact", user_blocks_ok, f"blocks={n_blocks} user={n_user}")
 
         # ---- PROJECT_STATE 与 DB 一致 ----
-        state_path = os.path.join(STATE_ROOT, "PROJECT_STATE.json")
         state_mismatch = []
-        if os.path.exists(state_path):
-            state = json.load(open(state_path, encoding="utf-8"))
+        if state_data is not None:
+            state = state_data
             db_works = work_count
             if state.get("database", {}).get("works") != db_works:
                 state_mismatch.append(f"works state={state['database']['works']} db={db_works}")

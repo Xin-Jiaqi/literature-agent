@@ -560,7 +560,7 @@ def build_chatgpt_handoff(conn, date, work_id, mode):
     if mode == "a_request":
         ctx_lines += [
             "注意：本目录中的 A.md 如果存在，是已有 Codex 版本快照，只作参考；",
-            "请独立重新执行 A（见 A_REQUEST.md），不要删除 Codex 版本，也不要覆盖 0_待处理 正式笔记。",
+            "请独立重新执行 A（见 A_REQUEST.md），不要删除 Codex 版本，也不要覆盖 _文献包 正式 A。",
         ]
     _atomic_write(os.path.join(target, "CONTEXT.md"), "\n".join(ctx_lines))
     files.append("CONTEXT.md")
@@ -574,7 +574,7 @@ def build_chatgpt_handoff(conn, date, work_id, mode):
             f"- 现有 Codex A（参考，不删除）：{a_src or '无'}",
             f"- A Skill：{os.environ.get('LITAGENT_A_SKILL', 'Literatures/AI system/A. 重要文献快速建档 Skill.md')}", "",
             "要求：基于实际取得的正文/SI 完整生成 A（六节齐全、无占位符、≥1000 字符）；",
-            "若 PDF/SI 缺失，如实标注；不得虚构。完成后由 literature-agent 校验并投递 0_待处理。",
+            "若 PDF/SI 缺失，如实标注；不得虚构。完成后由 literature-agent 校验并发布到 _文献包。",
         ]
         _atomic_write(os.path.join(target, "A_REQUEST.md"), "\n".join(req))
         files.append("A_REQUEST.md")

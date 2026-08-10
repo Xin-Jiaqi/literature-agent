@@ -1,11 +1,11 @@
-# A 阶段全文获取与建档规则（S 级论文）
+# A 阶段全文获取与建档规则（MUST 论文）
 
-> 适用范围：后续所有 S 级论文的 A 建档流程。本规则在 A. 重要文献快速建档 Skill 之外补充“全文/SI 获取”要求，不与 Skill 的输出格式冲突。
+> 适用范围：后续所有 MUST 论文的 A 建档流程。本规则在 A. 重要文献快速建档 Skill 之外补充“全文/SI 获取”要求，不与 Skill 的输出格式冲突。
 > 已完成的测试论文（2608.06326、2608.03492）不重新执行。
 
 ## 1. A 执行前：先检查 SI 是否存在
 
-对每篇 S 级论文，在执行 A 前必须检查是否存在 Supporting Information / Supplementary Material：
+对每篇 MUST 论文，在执行 A 前必须检查是否存在 Supporting Information / Supplementary Material：
 
 - 检查正文首页脚注、arXiv 页面（含 anc 附属文件列表）、期刊页面中是否有 SI 链接或说明；
 - 检查正文中对 SI 的引用方式（如 “see Supporting Information Section X / Fig. S4”），统计 SI 被引用承担的功能。

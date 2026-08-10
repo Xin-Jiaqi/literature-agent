@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-literature-agent v0 — 统一文献收集/筛选/全文处理/每日简报流水线。
+literature-agent（personal alpha）— 统一文献收集/筛选/全文处理/每日总览流水线。
 
 命令：
   python3 literature_agent.py bootstrap          # 把测试阶段历史迁移为“已消费”，建立 literature.db
@@ -525,7 +525,7 @@ def collect_arxiv(conn, today, log, days=None):
     cats = params.get("cats") or ARXIV_CATS
     days = days or params.get("days") or ARXIV_DAYS
     max_results = params.get("max_results", 300)
-    endpoint = cfg.get("url") or "http://export.arxiv.org/api/query"
+    endpoint = cfg.get("url") or "https://export.arxiv.org/api/query"
     start = (datetime.now().timestamp() - int(days) * 86400)
     start_iso = datetime.fromtimestamp(start).strftime("%Y-%m-%dT%H:%M:%SZ")
     seen_ids, records = set(), []
@@ -1912,7 +1912,7 @@ def selftest():
 def main():
     ap = argparse.ArgumentParser(
         prog="literature_agent.py",
-        description="literature-agent V2 (Research Radar) — 文献收集/筛选/处理/简报/覆盖评估/作者与引用雷达/反馈闭环",
+        description="literature-agent (personal alpha) — 文献收集/筛选/处理/每日总览/作者与引用雷达/反馈闭环",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""命令示例:
   python3 literature_agent.py daily                   # 整链：发现 -> 优先级 -> A 队列 -> 用户向 digest

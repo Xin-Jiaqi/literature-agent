@@ -218,7 +218,7 @@ def render_handoff(state):
         "",
         "## 后台 vs 前台",
         "",
-        "- 后台自动：collect → dedup → screen → PDF/SI → live MUST 自动 A → historical worker 空闲补 A → digest",
+        "- 后台自动：collect → dedup → screen → PDF/SI → A job 准备（live MUST 优先，historical 空闲补）→ digest；A 的生成由 Codex/ChatGPT executor 完成（`a-job` 只是生成任务清单，不等于已执行 A）",
         "- **Obsidian 每日总览是用户唯一日常前台**：`Literatures/每日文献/YYYY-MM-DD 文献总览.md`（vault 内直接生成，无日期子层）",
         "- 自动完成的 A 正式存放：`Literatures/每日文献/_文献包/<work_id>/`（A.md + paper.pdf），不再投递 `0_待处理`",
         "- `0_待处理` 只表示用户明确选择“稍后”的论文；`1_处理中`=read；`00-已阅`=ignore",

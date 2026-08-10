@@ -1,5 +1,19 @@
 # CHANGELOG
 
+## 2026-08-10 — Personal Alpha 修正（文档与真实行为对齐）
+
+- 统一投递语义：自动完成 A 正式发布到 `每日文献/_文献包/<work_id>/`（A.md + paper.pdf），不投递 `0_待处理`；`0_待处理` 只表示用户明确“稍后”。
+- 修正 `la_aworker.py` 协议、`la_workflow.py` docstring/continuation contract、`la_overview.py` A_REQUEST 文案、A worker 产物 README 中的旧 `0_待处理` 描述。
+- AGENTS.md 重写接手入口：`README.md → docs/HANDOFF.md → docs/WORKFLOW.md → docs/ARCHITECTURE.md` → vault Skill；明确 `a-job` 只生成清单、A 由 Codex/ChatGPT executor 完成。
+- audit 改为不变量：移除 `work_count >= 5000`、`blocked_pdf == 1`、`n_blocks > 0` 快照硬编码；work count 与上次 PROJECT_STATE 比较异常下降，blocked_pdf 改为 DB 与 state 一致（0 也 PASS），允许合法空总览。
+- 安全：`ssl_ctx()` 默认严格校验证书；仅 `LITAGENT_INSECURE_SSL=1` 显式关闭并输出 warning，无静默降级。
+- arXiv API 全部改为 HTTPS（`https://export.arxiv.org/api/query`，registry / collect / replay / selftest mock）。
+- source role 语义修正：`aps_accepted=discovery`（提前发现入口）、`aps_published=metadata_update`（更新正式出版状态，首次发现时作 discovery fallback）。
+- 版本命名清理：运行时入口去掉 `v0` / `V2 (Research Radar)` 过期称呼；统一称 `literature-agent`（personal alpha）。
+- MUST 术语统一：`docs/a_stage_rules.md` 中 `S 级论文` → `MUST 论文`；A/B/C/D 仅表示阅读阶段。
+- `automation/README.md` 重写为真实调度：daily 07/08/09/10 四档 + 60s `sync-overview --all` agent、python3.12 绝对路径（TCC 说明）、digest v4 用户向。
+- workflow_schema_version 保持 4（未改变 workflow schema）。
+
 ## 2026-08-09 — SYSTEM AUDIT + SAFE REPOSITORY CLEANUP
 
 - 新增 `python3 literature_agent.py audit`（18 项快速一致性检查）与 `audit --full`（+golden path +5 条用户路径 +13 项故障恢复）。

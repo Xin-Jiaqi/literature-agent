@@ -5,6 +5,7 @@ import json
 import os
 import re
 import ssl
+import sys
 import time
 import urllib.parse
 import urllib.request
@@ -18,14 +19,18 @@ _SSL_CTX = None
 
 
 def ssl_ctx():
+    """默认严格校验证书；仅当显式设置 LITAGENT_INSECURE_SSL=1 时才关闭验证（并输出 warning）。
+
+    不允许静默降级：任何非默认的关闭验证行为都必须由环境变量显式触发。
+    """
     global _SSL_CTX
     if _SSL_CTX is None:
         _SSL_CTX = ssl.create_default_context()
-        try:
+        if os.environ.get("LITAGENT_INSECURE_SSL") == "1":
             _SSL_CTX.check_hostname = False
             _SSL_CTX.verify_mode = ssl.CERT_NONE
-        except Exception:
-            pass
+            print("WARNING: LITAGENT_INSECURE_SSL=1 —— 关闭 TLS 证书校验（仅限调试/内网，请勿长期使用）",
+                  file=sys.stderr)
     return _SSL_CTX
 
 
