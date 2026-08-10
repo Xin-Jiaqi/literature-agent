@@ -641,10 +641,10 @@ def run_sync_overview(conn, date):
             if prev is None or not prev["save_zotero"]:
                 _ensure_zotero_accepted(conn, work_id)
                 try:
-                    from la_zotero import zotero_auto_enabled, zotero_save_work
+                    from la_zotero import zotero_auto_enabled, zotero_sync_queue
                     if zotero_auto_enabled():
                         summary["zotero_sync"] = summary.get("zotero_sync", [])
-                        summary["zotero_sync"].append(zotero_save_work(conn, work_id))
+                        summary["zotero_sync"].append(zotero_sync_queue(conn))
                 except Exception:
                     pass
         deep_read = "chatgpt_deep_read" in flags

@@ -105,14 +105,22 @@ def zotero_auto_enabled():
     return bool(z.get("auto_sync") and z.get("api_key") and z.get("user_id"))
 
 
-def _zotero_http(method, url, body=None, api_key=None, timeout=60):
+def _zotero_http(method, url, body=None, api_key=None, timeout=60,
+                  content_type="application/json", headers=None):
     import urllib.request
-    req = urllib.request.Request(url, method=method)
-    req.add_header("Zotero-API-Key", api_key)
-    if body is not None:
+    if body is None:
+        data = None
+    elif isinstance(body, bytes):
+        data = body
+    else:
         data = json.dumps(body).encode("utf-8")
-        req.add_header("Content-Type", "application/json")
-        req.add_header("Content-Length", str(len(data)))
+    req = urllib.request.Request(url, data=data, method=method)
+    req.add_header("Zotero-API-Key", api_key)
+    req.add_header("Zotero-API-Version", "3")
+    if data is not None:
+        req.add_header("Content-Type", content_type)
+    for k, v in (headers or {}).items():
+        req.add_header(k, v)
     with urllib.request.urlopen(req, timeout=timeout) as resp:
         return resp.status, resp.read()
 
@@ -138,16 +146,124 @@ def _zotero_collection_key(api_key, user_id, name):
 
 
 def _zotero_ensure_collection(api_key, user_id, name):
-    key = _zotero_collection_key(api_key, user_id, name)
-    if key:
-        return key
+    """匹配用户已有 collection：完整路径 → 逐级后缀 → 才新建叶子名。
+
+    用户库中 collection 是扁平名，例如 "04_injection/Ballistic"；
+    suggestion 返回的是层级路径 "01_核心/02_BPVE/04_injection/Ballistic"，
+    必须先尝试后缀匹配，避免每次都新建一个孤立的 "Ballistic"。
+    """
+    parts = (name or "").split("/")
+    candidates = []
+    for i in range(len(parts)):
+        cand = "/".join(parts[i:])
+        if cand and cand not in candidates:
+            candidates.append(cand)
+    for cand in candidates:
+        key = _zotero_collection_key(api_key, user_id, cand)
+        if key:
+            return key
+    leaf = parts[-1] or name
     status, raw = _zotero_http(
         "POST", f"https://api.zotero.org/users/{user_id}/collections",
-        body=[{"name": name}], api_key=api_key)
+        body=[{"name": leaf}], api_key=api_key)
     if status not in (200, 201):
         return None
     created = json.loads(raw)
-    return created[0].get("successful", {}).get("0", {}).get("key") if created else None
+    if isinstance(created, dict):
+        succ = created.get("successful") or {}
+        return (succ.get("0") or {}).get("key") if isinstance(succ, dict) else None
+    if isinstance(created, list) and created:
+        succ = created[0].get("successful") or {}
+        return (succ.get("0") or {}).get("key") if isinstance(succ, dict) else None
+    return None
+
+
+def _zotero_upload_pdf(api_key, user_id, parent_key, pdf_path):
+    """官方三步上传 PDF 附件：建附件条目 → 授权 → 传文件 → 注册。返回 (ok, detail)。
+
+    v3 不再接受在条目创建时内嵌 base64 content；必须先建 attachment 条目，
+    再走 /items/<key>/file 的授权-上传-注册流程。
+    """
+    import hashlib
+    import urllib.parse
+    with open(pdf_path, "rb") as f:
+        pdf = f.read()
+    md5 = hashlib.md5(pdf).hexdigest()
+    fname = os.path.basename(pdf_path)
+    mtime = str(int(os.path.getmtime(pdf_path) * 1000))
+    # 1) 建附件条目（不带 content）
+    att = [{"itemType": "attachment", "linkMode": "imported_file",
+            "filename": fname, "parentItem": parent_key, "title": fname}]
+    status, raw = _zotero_http("POST", f"https://api.zotero.org/users/{user_id}/items",
+                               body=att, api_key=api_key)
+    if status not in (200, 201):
+        return False, f"create attachment http {status}: {raw[:200]}"
+    created = json.loads(raw)
+    if isinstance(created, dict):
+        succ = created.get("successful") or {}
+    elif created:
+        succ = created[0].get("successful") or {}
+    else:
+        succ = {}
+    if isinstance(succ, dict):
+        att_key = (succ.get("0") or {}).get("key")
+    elif isinstance(succ, list) and succ:
+        att_key = (succ[0] or {}).get("key")
+    else:
+        att_key = None
+    if not att_key:
+        return False, f"no attachment key: {raw[:200]}"
+
+    def _cleanup():
+        try:
+            _zotero_http("DELETE", f"https://api.zotero.org/users/{user_id}/items?itemKey={att_key}",
+                         api_key=api_key)
+        except Exception:
+            pass
+
+    # 2) 授权上传
+    auth_body = urllib.parse.urlencode(
+        {"md5": md5, "filename": fname, "filesize": len(pdf), "mtime": mtime}).encode()
+    try:
+        status, raw = _zotero_http(
+            "POST", f"https://api.zotero.org/users/{user_id}/items/{att_key}/file",
+            body=auth_body, api_key=api_key,
+            content_type="application/x-www-form-urlencoded", headers={"If-None-Match": "*"})
+    except Exception:
+        _cleanup()
+        raise
+    if status != 200:
+        _cleanup()
+        return False, f"upload auth http {status}: {raw[:200]}"
+    auth = json.loads(raw)
+    if auth.get("exists"):
+        return True, ""
+    # 3) 传文件到临时 URL
+    payload = auth["prefix"].encode("utf-8") + pdf + auth["suffix"].encode("utf-8")
+    try:
+        status, raw = _zotero_http("POST", auth["url"], body=payload, api_key=api_key,
+                                   content_type=auth.get("contentType", "application/octet-stream"),
+                                   timeout=300)
+    except Exception:
+        _cleanup()
+        raise
+    if status != 201:
+        _cleanup()
+        return False, f"upload file http {status}: {raw[:200]}"
+    # 4) 注册
+    reg_body = urllib.parse.urlencode({"upload": auth["uploadKey"]}).encode()
+    try:
+        status, raw = _zotero_http(
+            "POST", f"https://api.zotero.org/users/{user_id}/items/{att_key}/file",
+            body=reg_body, api_key=api_key,
+            content_type="application/x-www-form-urlencoded", headers={"If-None-Match": "*"})
+    except Exception:
+        _cleanup()
+        raise
+    if status != 204:
+        _cleanup()
+        return False, f"register upload http {status}: {raw[:200]}"
+    return True, ""
 
 
 def _creators_from_authors(authors):
@@ -224,29 +340,41 @@ def zotero_save_work(conn, work_id):
             return {"ok": False, "error": f"create item http {status}: {raw[:200]}"}
         created = json.loads(raw)
         item_key = None
-        succ = created[0].get("successful") if created else None
+        if isinstance(created, dict):
+            succ = created.get("successful") or {}
+        elif created:
+            succ = created[0].get("successful") or {}
+        else:
+            succ = {}
         if isinstance(succ, dict):
             item_key = (succ.get("0") or {}).get("key")
         elif isinstance(succ, list) and succ:
             item_key = (succ[0] or {}).get("key")
         if not item_key:
             return {"ok": False, "error": f"no item key in response: {raw[:200]}"}
+        item_version = None
+        if isinstance(succ, dict):
+            item_version = (succ.get("0") or {}).get("version")
+        elif isinstance(succ, list) and succ:
+            item_version = (succ[0] or {}).get("version")
         if main_coll:
-            coll_key = _zotero_ensure_collection(api_key, user_id, main_coll.split("/")[-1])
+            coll_key = _zotero_ensure_collection(api_key, user_id, main_coll)
             if coll_key:
-                _zotero_http("PATCH", f"https://api.zotero.org/items/{item_key}",
-                             body={"collections": [coll_key]}, api_key=api_key)
-        # 附件：PDF 以 base64 上传
+                headers = {}
+                if item_version is not None:
+                    headers["If-Unmodified-Since-Version"] = str(item_version)
+                _zotero_http("PATCH", f"https://api.zotero.org/users/{user_id}/items/{item_key}",
+                             body={"collections": [coll_key]}, api_key=api_key, headers=headers)
+        # 附件：官方三步上传（建条目 → 授权 → 传文件 → 注册）
         if pdf_path and os.path.exists(pdf_path) and valid_pdf_file(pdf_path):
-            import base64
-            with open(pdf_path, "rb") as f:
-                b64 = base64.b64encode(f.read()).decode("ascii")
-            att = [{"itemType": "attachment", "linkMode": "imported_file", "content": b64,
-                    "filename": "paper.pdf", "parentItem": item_key}]
-            astatus, araw = _zotero_http("POST", f"https://api.zotero.org/users/{user_id}/items",
-                                         body=att, api_key=api_key, timeout=300)
-            if astatus not in (200, 201):
-                return {"ok": True, "item_key": item_key, "warning": f"attachment failed {astatus}"}
+            ok_up, detail = _zotero_upload_pdf(api_key, user_id, item_key, pdf_path)
+            if not ok_up:
+                try:
+                    _zotero_http("DELETE", f"https://api.zotero.org/users/{user_id}/items?itemKey={item_key}",
+                                 api_key=api_key)
+                except Exception:
+                    pass
+                return {"ok": False, "error": f"attachment failed: {detail}"}
         return {"ok": True, "item_key": item_key, "collection": main_coll}
     except Exception as e:
         return {"ok": False, "error": str(e)}
@@ -260,18 +388,36 @@ def zotero_sync_queue(conn):
     entries = load_queue()
     synced, failed, errors = 0, 0, []
     changed = False
+    now = now_iso()
     for e in entries:
         if e.get("status") != "accepted" or e.get("zotero_synced_at"):
             continue
+        last = e.get("zotero_last_attempt")
+        if last:
+            try:
+                dt = datetime.strptime(last, "%Y-%m-%d %H:%M:%S")
+                backoff = float(e.get("zotero_backoff_hours") or 6)
+                if (datetime.now() - dt).total_seconds() < backoff * 3600:
+                    continue
+            except ValueError:
+                pass
         r = zotero_save_work(conn, e["work_id"])
         if r.get("ok"):
-            e["zotero_synced_at"] = now_iso()
+            e["zotero_synced_at"] = now
             e["zotero_item_key"] = r.get("item_key", "")
+            e.pop("zotero_error", None)
+            e.pop("zotero_last_attempt", None)
+            e.pop("zotero_backoff_hours", None)
             synced += 1
             changed = True
         else:
+            err = r.get("error", "")
+            e["zotero_error"] = err
+            e["zotero_last_attempt"] = now
+            e["zotero_backoff_hours"] = 24 if "quota" in err else 6
             failed += 1
-            errors.append({"work_id": e["work_id"], "error": r.get("error", "")})
+            changed = True
+            errors.append({"work_id": e["work_id"], "error": err})
     if changed:
         _save(entries)
     return {"ok": True, "synced": synced, "failed": failed, "errors": errors[:5]}

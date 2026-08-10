@@ -285,10 +285,11 @@ def t16(tmp):
                      ("t:1", "completed", "", pdf, "ok", "", "", "2026-08-10 08:00:00"))
         conn.commit()
         calls = []
-        def fake_http(method, url, body=None, api_key=None, timeout=60):
+        def fake_http(method, url, body=None, api_key=None, timeout=60,
+                      content_type="application/json", headers=None):
             calls.append((method, url, body))
             if method == "POST" and isinstance(body, list) and body and body[0].get("itemType") == "journalArticle":
-                return 201, json.dumps([{"successful": {"0": {"key": "ITEM1"}}}]).encode()
+                return 201, json.dumps([{"successful": {"0": {"key": "ITEM1", "version": 1}}}]).encode()
             if url.endswith("/collections") and method == "GET":
                 return 200, json.dumps([]).encode()
             if url.endswith("/collections") and method == "POST":
@@ -297,7 +298,17 @@ def t16(tmp):
                 return 201, json.dumps([{"successful": {"0": {"key": "ATT1"}}}]).encode()
             if method == "PATCH":
                 return 204, b""
-            return 500, b"unexpected"
+            if url.endswith("/items/ATT1/file") and method == "POST":
+                if isinstance(body, bytes) and body.startswith(b"upload="):
+                    return 204, b""
+                return 200, json.dumps({"exists": False, "url": "https://s3.example/x",
+                                        "prefix": "PRE", "suffix": "POST", "uploadKey": "UK",
+                                        "contentType": "application/octet-stream"}).encode()
+            if "s3.example" in url and method == "POST":
+                return 201, b""
+            if url.endswith("/items") and method == "DELETE":
+                return 204, b""
+            return 500, b"unexpected: " + url.encode()
         with mock.patch.object(lz, "_zotero_http", side_effect=fake_http):
             r = lz.zotero_save_work(conn, "t:1")
         assert r["ok"] and r["item_key"] == "ITEM1", r
@@ -306,9 +317,11 @@ def t16(tmp):
         assert entry["creators"] == [{"creatorType": "author", "firstName": "John", "lastName": "Smith"},
                                      {"creatorType": "author", "firstName": "Jane", "lastName": "Doe"}]
         att = next(c for c in calls if isinstance(c[2], list) and c[2] and c[2][0].get("itemType") == "attachment")[2][0]
-        assert att["parentItem"] == "ITEM1" and att["filename"] == "paper.pdf" and att["content"]
+        assert att["parentItem"] == "ITEM1" and att["filename"] == "paper.pdf"
+        assert "content" not in att, "v3 不允许内嵌 base64 content"
         patch = next(c for c in calls if c[0] == "PATCH")
         assert patch[2] == {"collections": ["COLL1"]}
+        assert any("s3.example" in c[1] for c in calls), "三步上传必须完整执行"
 
 @case(14, "monthly digest")
 def t14(tmp):
