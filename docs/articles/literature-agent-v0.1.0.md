@@ -522,6 +522,7 @@ Zotero：
 - License：MIT（Copyright 2026 Xin Jiaqi）
 - 发布日期：2026-08-10
 - 仓库可见性：Public
+- 对应发布提交：`51bead386ab8a6aaadbdf107dbafcc45db3872f5`
 
 当前版本优先解决个人科研工作流：文献发现、筛选、A 建档入口、Obsidian 每日总览、Zotero 归档和 ChatGPT/Codex 交接。当前并不追求做成通用 SaaS 或跨领域成品。
 
