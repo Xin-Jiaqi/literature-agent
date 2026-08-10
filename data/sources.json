@@ -1,0 +1,390 @@
+{
+ "schema_version": 1,
+ "updated": "2026-08-10T11:20:00+08:00",
+ "note": "机器可读来源注册表。role: discovery|metadata_update|preprint|journal。priority 只用于同级排序与 digest 展示，不参与 S/A 判定。health.blocked 说明无法接入的原因。 ; V2: crossref_fallback/openalex_author_watch/openalex_citation_watch (metadata discovery, public API, rate-limited+cached, network failure non-fatal)",
+ "sources": [
+  {
+   "id": "arxiv",
+   "publisher": "arXiv",
+   "journal": null,
+   "type": "api",
+   "role": "preprint",
+   "priority": 10,
+   "enabled": true,
+   "supports_backfill": true,
+   "needs_abstract_enrichment": false,
+   "endpoint": "http://export.arxiv.org/api/query",
+   "params": {
+    "cats": [
+     "cond-mat.mtrl-sci",
+     "cond-mat.mes-hall",
+     "cond-mat.str-el",
+     "physics.comp-ph"
+    ],
+    "days": 7,
+    "max_results": 300
+   },
+   "notes": "arXiv API by category; backfill by submittedDate (supports --days N)"
+  },
+  {
+   "id": "aps_accepted",
+   "publisher": "American Physical Society",
+   "journal": null,
+   "type": "rss",
+   "role": "metadata_update",
+   "priority": 20,
+   "enabled": true,
+   "supports_backfill": false,
+   "needs_abstract_enrichment": true,
+   "feeds": [
+    {
+     "journal": "Physical Review Letters",
+     "url": "https://feeds.aps.org/rss/accepted/prl.xml",
+     "parser": "rss1"
+    },
+    {
+     "journal": "Physical Review B",
+     "url": "https://feeds.aps.org/rss/accepted/prb.xml",
+     "parser": "rss1"
+    },
+    {
+     "journal": "Physical Review Materials",
+     "url": "https://feeds.aps.org/rss/accepted/prmaterials.xml",
+     "parser": "rss1"
+    }
+   ],
+   "notes": "APS RSS ~100 items limit; backfill coverage incomplete by design; abstracts often truncated -> enrichment L2/L3"
+  },
+  {
+   "id": "aps_published",
+   "publisher": "American Physical Society",
+   "journal": null,
+   "type": "rss",
+   "role": "journal",
+   "priority": 30,
+   "enabled": true,
+   "supports_backfill": false,
+   "needs_abstract_enrichment": false,
+   "feeds": [
+    {
+     "journal": "Physical Review Letters",
+     "url": "https://feeds.aps.org/rss/recent/prl.xml",
+     "parser": "rss1"
+    },
+    {
+     "journal": "Physical Review B",
+     "url": "https://feeds.aps.org/rss/recent/prb.xml",
+     "parser": "rss1"
+    },
+    {
+     "journal": "Physical Review Materials",
+     "url": "https://feeds.aps.org/rss/recent/prmaterials.xml",
+     "parser": "rss1"
+    }
+   ],
+   "notes": "Full abstracts; PRM added v1"
+  },
+  {
+   "id": "npj_rss",
+   "publisher": "Springer Nature",
+   "journal": "npj Computational Materials",
+   "type": "rss",
+   "role": "journal",
+   "priority": 40,
+   "enabled": true,
+   "supports_backfill": false,
+   "needs_abstract_enrichment": true,
+   "feeds": [
+    {
+     "journal": "npj Computational Materials",
+     "url": "https://www.nature.com/npjcompumats.rss",
+     "parser": "rss1"
+    }
+   ],
+   "notes": "Abstract enriched from article page when RSS abstract missing"
+  },
+  {
+   "id": "nature_rss",
+   "publisher": "Springer Nature",
+   "journal": "Nature Communications",
+   "type": "rss",
+   "role": "journal",
+   "priority": 40,
+   "enabled": true,
+   "supports_backfill": false,
+   "needs_abstract_enrichment": true,
+   "feeds": [
+    {
+     "journal": "Nature Communications",
+     "url": "https://www.nature.com/ncomms.rss",
+     "parser": "rss1"
+    }
+   ],
+   "notes": ""
+  },
+  {
+   "id": "nmat_rss",
+   "publisher": "Springer Nature",
+   "journal": "Nature Materials",
+   "type": "rss",
+   "role": "journal",
+   "priority": 40,
+   "enabled": true,
+   "supports_backfill": false,
+   "needs_abstract_enrichment": true,
+   "feeds": [
+    {
+     "journal": "Nature Materials",
+     "url": "https://www.nature.com/nmat.rss",
+     "parser": "rss1"
+    }
+   ],
+   "notes": "v1 new (2026-08-08 probe: 200)"
+  },
+  {
+   "id": "nnano_rss",
+   "publisher": "Springer Nature",
+   "journal": "Nature Nanotechnology",
+   "type": "rss",
+   "role": "journal",
+   "priority": 40,
+   "enabled": true,
+   "supports_backfill": false,
+   "needs_abstract_enrichment": true,
+   "feeds": [
+    {
+     "journal": "Nature Nanotechnology",
+     "url": "https://www.nature.com/nnano.rss",
+     "parser": "rss1"
+    }
+   ],
+   "notes": "v1 new (2026-08-08 probe: 200)"
+  },
+  {
+   "id": "sciadv_rss",
+   "publisher": "American Association for the Advancement of Science",
+   "journal": "Science Advances",
+   "type": "rss",
+   "role": "journal",
+   "priority": 45,
+   "enabled": true,
+   "supports_backfill": false,
+   "needs_abstract_enrichment": true,
+   "feeds": [
+    {
+     "journal": "Science Advances",
+     "url": "https://www.science.org/action/showFeed?type=etoc&feed=rss&jc=sciadv",
+     "parser": "rss1"
+    }
+   ],
+   "notes": "v1 new (2026-08-08 probe: 200); description contains volume info only -> enrichment required"
+  },
+  {
+   "id": "acs_rss",
+   "publisher": "American Chemical Society",
+   "journal": null,
+   "type": "rss",
+   "role": "journal",
+   "priority": 50,
+   "enabled": false,
+   "supports_backfill": false,
+   "needs_abstract_enrichment": true,
+   "feeds": [
+    {
+     "journal": "Nano Letters",
+     "url": "https://pubs.acs.org/action/showFeed?type=etoc&feed=rss&jc=nalefd",
+     "parser": "acs"
+    },
+    {
+     "journal": "ACS Nano",
+     "url": "https://pubs.acs.org/action/showFeed?type=etoc&feed=rss&jc=ancac3",
+     "parser": "acs"
+    }
+   ],
+   "health": {
+    "blocked": "blocked_by_cloudflare",
+    "detail": "Official URL confirmed; 403 Cloudflare challenge from local IP (curl/browser/playwright all fail). Needs different IP/login session. Not bypassed per policy."
+   },
+   "notes": "URLs verified on official ACS follow pages; only network channel missing"
+  },
+  {
+   "id": "jpcl_rss",
+   "publisher": "American Chemical Society",
+   "journal": "Journal of Physical Chemistry Letters",
+   "type": "rss",
+   "role": "journal",
+   "priority": 50,
+   "enabled": false,
+   "supports_backfill": false,
+   "needs_abstract_enrichment": true,
+   "feeds": [
+    {
+     "journal": "Journal of Physical Chemistry Letters",
+     "url": "https://pubs.acs.org/action/showFeed?type=etoc&feed=rss&jc=jpclcd",
+     "parser": "acs"
+    }
+   ],
+   "health": {
+    "blocked": "blocked_by_cloudflare",
+    "detail": "Same ACS gateway as Nano Letters/ACS Nano; 403 Cloudflare (probe 2026-08-08)."
+   },
+   "notes": "Tier1 v1 candidate; blocked"
+  },
+  {
+   "id": "wiley_rss",
+   "publisher": "Wiley",
+   "journal": null,
+   "type": "rss",
+   "role": "journal",
+   "priority": 50,
+   "enabled": false,
+   "supports_backfill": false,
+   "needs_abstract_enrichment": true,
+   "feeds": [
+    {
+     "journal": "Advanced Materials",
+     "url": "https://onlinelibrary.wiley.com/action/showFeed?type=etoc&feed=rss&jc=adma",
+     "parser": "rss2"
+    },
+    {
+     "journal": "Advanced Functional Materials",
+     "url": "https://onlinelibrary.wiley.com/action/showFeed?type=etoc&feed=rss&jc=adfm",
+     "parser": "rss2"
+    }
+   ],
+   "health": {
+    "blocked": "blocked_feed_unavailable",
+    "detail": "showFeed returns 404 Missing resource; journal page behind Cloudflare 403 (probe 2026-08-08)."
+   },
+   "notes": "Tier1 v1 candidate; blocked"
+  },
+  {
+   "id": "iop_rss",
+   "publisher": "IOP Publishing",
+   "journal": "2D Materials",
+   "type": "rss",
+   "role": "journal",
+   "priority": 50,
+   "enabled": false,
+   "supports_backfill": false,
+   "needs_abstract_enrichment": true,
+   "feeds": [
+    {
+     "journal": "2D Materials",
+     "url": "https://iopscience.iop.org/2053-1583/rss",
+     "parser": "rss2"
+    }
+   ],
+   "health": {
+    "blocked": "blocked_bot_mitigation",
+    "detail": "Radware Bot Manager CAPTCHA on all iopscience paths (probe 2026-08-08)."
+   },
+   "notes": "Tier2 v1 candidate; blocked"
+  },
+  {
+   "id": "aip_rss",
+   "publisher": "AIP Publishing",
+   "journal": null,
+   "type": "rss",
+   "role": "journal",
+   "priority": 50,
+   "enabled": false,
+   "supports_backfill": false,
+   "needs_abstract_enrichment": true,
+   "feeds": [
+    {
+     "journal": "Applied Physics Letters",
+     "url": "https://pubs.aip.org/aip/apl/feed/rss",
+     "parser": "rss2"
+    },
+    {
+     "journal": "Journal of Applied Physics",
+     "url": "https://pubs.aip.org/aip/jap/feed/rss",
+     "parser": "rss2"
+    }
+   ],
+   "health": {
+    "blocked": "blocked_by_cloudflare",
+    "detail": "feed URLs 404; journal pages Cloudflare 403 (probe 2026-08-08)."
+   },
+   "notes": "Tier2 v1 candidate; blocked"
+  },
+  {
+   "id": "nanores_rss",
+   "publisher": "Springer",
+   "journal": "Nano Research",
+   "type": "rss",
+   "role": "journal",
+   "priority": 50,
+   "enabled": false,
+   "supports_backfill": false,
+   "needs_abstract_enrichment": true,
+   "feeds": [
+    {
+     "journal": "Nano Research",
+     "url": "https://link.springer.com/search.rss?facet-journal-id=12274",
+     "parser": "rss2"
+    }
+   ],
+   "health": {
+    "blocked": "blocked_stale_feed",
+    "detail": "Springer facet search.rss returns items only up to 2024-11-23 (stale); thenanoresearch.com TLS cert expired (probe 2026-08-08)."
+   },
+   "notes": "Tier2 v1 candidate; blocked until a fresh official feed is found"
+  },
+  {
+   "id": "crossref_journals",
+   "publisher": "Crossref",
+   "journal": "blocked+backfill journals",
+   "type": "api",
+   "role": "discovery",
+   "priority": 35,
+   "enabled": true,
+   "supports_backfill": true,
+   "needs_abstract_enrichment": false,
+   "endpoint": "https://api.crossref.org/works",
+   "params": {
+    "rows": 200,
+    "from_date": null,
+    "max_per_journal": 40
+   },
+   "notes": "V2: blocked-journal metadata fallback via ISSN filter (Nano Lett/ACS Nano/JPCL/Adv Mater/AFM/2D Mater/APL/JAP/Nano Research). 2026-08-10 + Nature Communications/Materials/Nanotechnology (backfill role, RSS 不可回补，缺口由 Crossref 按日期窗口补). metadata-only; abstract rarely present -> not fabricated. journal_identifiers.json"
+  },
+  {
+   "id": "openalex_author_watch",
+   "publisher": "OpenAlex",
+   "journal": null,
+   "type": "api",
+   "role": "discovery",
+   "priority": 25,
+   "enabled": true,
+   "supports_backfill": true,
+   "needs_abstract_enrichment": false,
+   "endpoint": "https://api.openalex.org/works",
+   "params": {
+    "per_page": 50,
+    "from_date": null,
+    "days": 7
+   },
+   "notes": "V2: tracked_entities author watch (filter=author.id:...). signal=tracked_author. low-confidence authors excluded from strong signals."
+  },
+  {
+   "id": "openalex_citation_watch",
+   "publisher": "OpenAlex",
+   "journal": null,
+   "type": "api",
+   "role": "discovery",
+   "priority": 25,
+   "enabled": true,
+   "supports_backfill": true,
+   "needs_abstract_enrichment": false,
+   "endpoint": "https://api.openalex.org/works",
+   "params": {
+    "per_page": 50,
+    "from_date": null,
+    "days": 7
+   },
+   "notes": "V2: citation radar (filter=cites:W...). signals=citing_core_work/co_cited/related_to_core_work. OpenAlex citation lag documented."
+  }
+ ]
+}

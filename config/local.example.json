@@ -1,0 +1,11 @@
+{
+  "project_root": "/path/to/literature-agent",
+  "obsidian_vault": "/path/to/your/Obsidian/Vault",
+  "literatures_root": "/path/to/your/Vault/orange/Literatures",
+  "a_skill_path": "/path/to/your/A skill.md",
+  "zotero": {
+    "api_key": "your-zotero-api-key",
+    "user_id": "your-zotero-user-id",
+    "auto_sync": false
+  }
+}

@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# 本机配置（含 Zotero API key 与个人路径）——绝不提交
+config/local.json
+
+# 个人数据 / 状态 / 运行产物
+data/literature.db*
+data/zotero_library.json
+data/zotero_snapshot.json
+data/zotero_taxonomy.md
+data/tracked_entities.json
+data/citation_seeds.json
+data/research_profile.md
+data/gold/
+data/queues/
+data/imports/
+state/
+reports/
+backups/
+runtime/
+workspace/
+archive/
+
+# 自动生成的实时文档（由 handoff 命令重新生成）
+docs/HANDOFF.md
+docs/CODEX_HANDOFF.md
+
+# 系统
+.DS_Store
+.env

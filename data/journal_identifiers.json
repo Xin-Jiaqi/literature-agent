@@ -1,0 +1,458 @@
+{
+ "verified_at": "2026-08-10 11:18:08",
+ "journals": [
+  {
+   "name": "Nano Letters",
+   "expected_issns": [
+    "1530-6984",
+    "1530-6992"
+   ],
+   "expected_publisher": "American Chemical Society",
+   "verified_issns": [
+    "1530-6984"
+   ],
+   "publisher_confirmed": "American Chemical Society",
+   "crossref_works_total": 27292,
+   "latest_work_date": "2026",
+   "sample_recent": [
+    {
+     "doi": "10.1021/acs.nanolett.6c03278",
+     "title": "NIR-II Ratiometric\nImaging of SOD Activity with a\nSuperoxide-Responsive Nanoprobe",
+     "year": 2026,
+     "type": "journal-article"
+    },
+    {
+     "doi": "10.1021/acs.nanolett.6c01668",
+     "title": "Scanning-Probe\nQuantum Sensing of a Microwave and\nStatic Magnetic Field Response of an On-Chip Superconducting Resonator",
+     "year": 2026,
+     "type": "journal-article"
+    },
+    {
+     "doi": "10.1021/acs.nanolett.6c02184",
+     "title": "Electro-Chemo-Mechanical\nCoupling in Electronically\nProgrammable Surface Electrochemical Actuators",
+     "year": 2026,
+     "type": "journal-article"
+    }
+   ],
+   "ok": true,
+   "error": null,
+   "role": "blocked_fallback",
+   "rows": 200
+  },
+  {
+   "name": "ACS Nano",
+   "expected_issns": [
+    "1936-0851",
+    "1936-086X"
+   ],
+   "expected_publisher": "American Chemical Society",
+   "verified_issns": [
+    "1936-0851"
+   ],
+   "publisher_confirmed": "American Chemical Society",
+   "crossref_works_total": 29070,
+   "latest_work_date": "2026",
+   "sample_recent": [
+    {
+     "doi": "10.1021/acsnano.6c04954",
+     "title": "Design and Characterization\nof SAKe, a Building Block\nfor Protein Self-Assembly",
+     "year": 2026,
+     "type": "journal-article"
+    },
+    {
+     "doi": "10.1021/acsnano.6c08834",
+     "title": "Cross-Kingdom\nmiR5054 Delivery via\n                    <i>Polygonum cuspidatum</i>\n                    -Derived Nanoparticles Enhances Burn Wound Healing\nby Regulating Microvascular Environment",
+     "year": 2026,
+     "type": "journal-article"
+    },
+    {
+     "doi": "10.1021/acsnano.5c21962",
+     "title": "Fully Inorganic\nHole Contacts Enabled by CeI3 for High-Performance Perovskite\nSolar Modules",
+     "year": 2026,
+     "type": "journal-article"
+    }
+   ],
+   "ok": true,
+   "error": null,
+   "role": "blocked_fallback",
+   "rows": 200
+  },
+  {
+   "name": "Journal of Physical Chemistry Letters",
+   "expected_issns": [
+    "1948-7185"
+   ],
+   "expected_publisher": "American Chemical Society",
+   "verified_issns": [
+    "1948-7185"
+   ],
+   "publisher_confirmed": "American Chemical Society",
+   "crossref_works_total": 19845,
+   "latest_work_date": "2026",
+   "sample_recent": [
+    {
+     "doi": "10.1021/acs.jpclett.6c02004",
+     "title": "A Toolset-First\nParadigm Based on Large Language Model\nand Agent via Model Context Protocol for Intelligent Computation",
+     "year": 2026,
+     "type": "journal-article"
+    },
+    {
+     "doi": "10.1021/acs.jpclett.6c02136",
+     "title": "Hydrophobic\nDilauroyl Peroxide Improves the Electrical\nPerformance and Stability of PTAA in both n-i-p and\np-i-n Perovskite Solar Cells",
+     "year": 2026,
+     "type": "journal-article"
+    },
+    {
+     "doi": "10.1021/acs.jpclett.6c01999",
+     "title": "Hydrogen-Bond\nNetwork Drives Water Splitting by Neutral\nTantalum Center",
+     "year": 2026,
+     "type": "journal-article"
+    }
+   ],
+   "ok": true,
+   "error": null,
+   "role": "blocked_fallback",
+   "rows": 200
+  },
+  {
+   "name": "Advanced Materials",
+   "expected_issns": [
+    "0935-9648",
+    "1521-4095"
+   ],
+   "expected_publisher": "Wiley",
+   "verified_issns": [
+    "0935-9648"
+   ],
+   "publisher_confirmed": "Wiley (John Wiley & Sons)",
+   "crossref_works_total": 44693,
+   "latest_work_date": "2026",
+   "sample_recent": [
+    {
+     "doi": "10.1002/adma.74403",
+     "title": "Mechanically Encoded Materials for Edge Perception",
+     "year": 2026,
+     "type": "journal-article"
+    },
+    {
+     "doi": "10.1002/adma.74544",
+     "title": "Mechanically Assisted Magnetic Actuation in Ceramic‐Based Microscrolls for Fast and Durable Soft Robotic Systems",
+     "year": 2026,
+     "type": "journal-article"
+    },
+    {
+     "doi": "10.1002/adma.74543",
+     "title": "Flax Composites With Improved Interfacial Strength Through Microbially Induced Mineral Precipitation",
+     "year": 2026,
+     "type": "journal-article"
+    }
+   ],
+   "ok": true,
+   "error": null,
+   "role": "blocked_fallback",
+   "rows": 200
+  },
+  {
+   "name": "Advanced Functional Materials",
+   "expected_issns": [
+    "1616-301X",
+    "1616-3028"
+   ],
+   "expected_publisher": "Wiley",
+   "verified_issns": [
+    "1616-301X"
+   ],
+   "publisher_confirmed": "Wiley (John Wiley & Sons)",
+   "crossref_works_total": 42209,
+   "latest_work_date": "2026",
+   "sample_recent": [
+    {
+     "doi": "10.1002/adfm.77462",
+     "title": "Molecular Glue: 1D/3D Heterojunction Suppresses Nonradiative Recombination and C\n                    <sub>60</sub>\n                    Aggregation for Efficient and Stable Perovskite Solar Cells",
+     "year": 2026,
+     "type": "journal-article"
+    },
+    {
+     "doi": "10.1002/adfm.77608",
+     "title": "Unveiling the Role of Sodium Ions in Modulating the Molecular Structure of Polyacrylic Acid for Stable Operation of Silicon‐Based Anodes",
+     "year": 2026,
+     "type": "journal-article"
+    },
+    {
+     "doi": "10.1002/adfm.77529",
+     "title": "Multifunctional Solid Polymer Electrolyte Films Integrating Intrinsic Self‐Healing and Dual Photo‐/pH‐Responsive Ionic Sensing for Intelligent Flexible Electronics",
+     "year": 2026,
+     "type": "journal-article"
+    }
+   ],
+   "ok": true,
+   "error": null,
+   "role": "blocked_fallback",
+   "rows": 200
+  },
+  {
+   "name": "2D Materials",
+   "expected_issns": [
+    "2053-1583"
+   ],
+   "expected_publisher": "IOP Publishing",
+   "verified_issns": [
+    "2053-1583"
+   ],
+   "publisher_confirmed": "IOP Publishing",
+   "crossref_works_total": 2211,
+   "latest_work_date": "2026",
+   "sample_recent": [
+    {
+     "doi": "10.1088/2053-1583/ae9045",
+     "title": "Theoretical characterization of the magnetic properties of vanadium-doped Ti\n                    <mml:math xmlns:mml=\"http://www.w3.org/1998/Math/MathML\">\n                      <mml:mrow>\n                        <mml:msub>\n                          <mml:mi/>\n                          <mml:mrow>\n                            <mml:mn>2</mml:mn>\n                          </mml:mrow>\n                        </mml:msub>\n                      </mml:mrow>\n                    </mml:math>\n                    C MXenes",
+     "year": 2026,
+     "type": "journal-article"
+    },
+    {
+     "doi": "10.1088/2053-1583/ae8ccd",
+     "title": "First-principles calculations of coexisting quantum-spin Hall effect and intrinsic piezoelectricity in PbGeH and PbSnH monolayers: implications for spintronic devices",
+     "year": 2026,
+     "type": "journal-article"
+    },
+    {
+     "doi": "10.1088/2053-1583/ae9370",
+     "title": "Navigating Growth Regimes in Graphene-Assisted III-Nitride Epitaxy: Insights, Challenges, and Pathways Forward",
+     "year": 2026,
+     "type": "journal-article"
+    }
+   ],
+   "ok": true,
+   "error": null,
+   "role": "blocked_fallback",
+   "rows": 200
+  },
+  {
+   "name": "Applied Physics Letters",
+   "expected_issns": [
+    "0003-6951",
+    "1077-3118"
+   ],
+   "expected_publisher": "AIP Publishing",
+   "verified_issns": [
+    "0003-6951"
+   ],
+   "publisher_confirmed": "American Institute of Physics",
+   "crossref_works_total": 140735,
+   "latest_work_date": "2026",
+   "sample_recent": [
+    {
+     "doi": "10.1063/5.0319516",
+     "title": "Deterministic magnetization switching by giant orbital torque in perpendicularly magnetized V/Pt/Co heterostructures",
+     "year": 2026,
+     "type": "journal-article"
+    },
+    {
+     "doi": "10.1063/5.0339738",
+     "title": "Green LEDs with V-defects formed from intentional dislocation half-loops",
+     "year": 2026,
+     "type": "journal-article"
+    },
+    {
+     "doi": "10.1063/5.0347001",
+     "title": "Thermally tunable high-voltage breakdown and divergent avalanche nonlinearity in planar SnO2 nanofilm varistors",
+     "year": 2026,
+     "type": "journal-article"
+    }
+   ],
+   "ok": true,
+   "error": null,
+   "role": "blocked_fallback",
+   "rows": 200
+  },
+  {
+   "name": "Journal of Applied Physics",
+   "expected_issns": [
+    "0021-8979",
+    "1089-7550"
+   ],
+   "expected_publisher": "AIP Publishing",
+   "verified_issns": [
+    "0021-8979"
+   ],
+   "publisher_confirmed": "American Institute of Physics",
+   "crossref_works_total": 152295,
+   "latest_work_date": "2026",
+   "sample_recent": [
+    {
+     "doi": "10.1063/5.0340384",
+     "title": "Thermoplastic modification of polycrystalline copper surface microstructure by nonmelting nanosecond laser pulses",
+     "year": 2026,
+     "type": "journal-article"
+    },
+    {
+     "doi": "10.1063/5.0345138",
+     "title": "Decoupling nonlinear programmability from resonance tuning in a spectrally stable graphene–GaN terahertz nanocavity",
+     "year": 2026,
+     "type": "journal-article"
+    },
+    {
+     "doi": "10.1063/5.0336332",
+     "title": "Lanthanide ion electronic structure controls magnetic excitations in topological quantum ferrimagnets LnMn6Sn6 (Ln = Tb, Dy, Ho)",
+     "year": 2026,
+     "type": "journal-article"
+    }
+   ],
+   "ok": true,
+   "error": null,
+   "role": "blocked_fallback",
+   "rows": 200
+  },
+  {
+   "name": "Nano Research",
+   "expected_issns": [
+    "1998-0124",
+    "1998-0000"
+   ],
+   "expected_publisher": "Springer",
+   "verified_issns": [
+    "1998-0124"
+   ],
+   "publisher_confirmed": "Tsinghua University Press",
+   "crossref_works_total": 9258,
+   "latest_work_date": null,
+   "sample_recent": [
+    {
+     "doi": "10.26599/nr.2026.94908789",
+     "title": "Integrated multifunctional graphene aerogel combining wide temperature range sensing with high-efficiency electromagnetic shielding on a single platform",
+     "year": null,
+     "type": "journal-article"
+    },
+    {
+     "doi": "10.26599/nr.2026.94908530",
+     "title": "Flexible alternating current electroluminescence devices toward sensing-display integration",
+     "year": null,
+     "type": "journal-article"
+    },
+    {
+     "doi": "10.26599/nr.2026.94908895",
+     "title": "A Pt-Co paired-site nanozyme with a triple-synergistic action enhances periodontitis therapy",
+     "year": null,
+     "type": "journal-article"
+    }
+   ],
+   "ok": true,
+   "error": null,
+   "role": "blocked_fallback",
+   "rows": 200
+  },
+  {
+   "name": "Nature Communications",
+   "expected_issns": [
+    "2041-1723"
+   ],
+   "expected_publisher": "Springer Nature",
+   "role": "backfill",
+   "rows": 400,
+   "verified_issns": [
+    "2041-1723"
+   ],
+   "publisher_confirmed": "Springer Science and Business Media LLC",
+   "crossref_works_total": 91107,
+   "latest_work_date": "2026",
+   "sample_recent": [
+    {
+     "doi": "10.1038/s41467-026-75862-4",
+     "title": "Targeting m6A writer METTL3 with engineered nanovesicles reduces neuroinflammation in vitro and in vivo",
+     "year": 2026,
+     "type": "journal-article"
+    },
+    {
+     "doi": "10.1038/s41467-026-76515-2",
+     "title": "Discovery of a peripheral Myh11-expressing nucleus pulposus cell population demontrating therapeutic potential for disc degeneration",
+     "year": 2026,
+     "type": "journal-article"
+    },
+    {
+     "doi": "10.1038/s41467-026-76516-1",
+     "title": "Synthesis of adaptive 15N-nitrosyl-Co7 nanocluster for electrocatalytic C–H functionalization",
+     "year": 2026,
+     "type": "journal-article"
+    }
+   ],
+   "ok": true,
+   "error": null
+  },
+  {
+   "name": "Nature Materials",
+   "expected_issns": [
+    "1476-1122",
+    "1476-4660"
+   ],
+   "expected_publisher": "Springer Nature",
+   "role": "backfill",
+   "rows": 200,
+   "verified_issns": [
+    "1476-1122"
+   ],
+   "publisher_confirmed": "Springer Science and Business Media LLC",
+   "crossref_works_total": 6944,
+   "latest_work_date": "2026",
+   "sample_recent": [
+    {
+     "doi": "10.1038/s41563-026-02709-0",
+     "title": "Twisting light the Weyl way",
+     "year": 2026,
+     "type": "journal-article"
+    },
+    {
+     "doi": "10.1038/s41563-026-02701-8",
+     "title": "Microdroplets jam together to mimic soft tissues",
+     "year": 2026,
+     "type": "journal-article"
+    },
+    {
+     "doi": "10.1038/s41563-026-02674-8",
+     "title": "Two is company and three is a quantum interface",
+     "year": 2026,
+     "type": "journal-article"
+    }
+   ],
+   "ok": true,
+   "error": null
+  },
+  {
+   "name": "Nature Nanotechnology",
+   "expected_issns": [
+    "1748-3387",
+    "1748-3395"
+   ],
+   "expected_publisher": "Springer Nature",
+   "role": "backfill",
+   "rows": 200,
+   "verified_issns": [
+    "1748-3387"
+   ],
+   "publisher_confirmed": "Springer Science and Business Media LLC",
+   "crossref_works_total": 5970,
+   "latest_work_date": "2026",
+   "sample_recent": [
+    {
+     "doi": "10.1038/s41565-026-02248-4",
+     "title": "Author Correction: Black phosphorus nanosheets boost mitochondrial oxidative phosphorylation improving immunotherapy outcomes",
+     "year": 2026,
+     "type": "journal-article"
+    },
+    {
+     "doi": "10.1038/s41565-026-02244-8",
+     "title": "Radial nanochannel-array carbon enables high-performance intermetallic fuel cell catalysts",
+     "year": 2026,
+     "type": "journal-article"
+    },
+    {
+     "doi": "10.1038/s41565-026-02236-8",
+     "title": "Spectral biophysical cytometry with nanosensors reveals remodelling of immune cells in atherosclerosis",
+     "year": 2026,
+     "type": "journal-article"
+    }
+   ],
+   "ok": true,
+   "error": null
+  }
+ ]
+}
