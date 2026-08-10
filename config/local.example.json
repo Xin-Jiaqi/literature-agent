@@ -6,6 +6,11 @@
   "zotero": {
     "api_key": "your-zotero-api-key",
     "user_id": "your-zotero-user-id",
-    "auto_sync": false
+    "auto_sync": false,
+    "webdav": {
+      "url": "https://your-webdav.example/dav",
+      "username": "YOUR_USERNAME",
+      "password": "YOUR_PASSWORD"
+    }
   }
 }
