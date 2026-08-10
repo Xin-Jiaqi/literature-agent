@@ -173,5 +173,5 @@ python3 literature_agent.py handoff          # 刷新接手状态
 - Nature 系缺口（2026-08-10 已解决）：Nature Communications / Nature Materials / Nature Nanotechnology 已并入现有 Crossref 期刊回补（`journal_identifiers.json` 的 backfill 角色，Nat Comm rows=400），日常与补课窗口都按日期回补，DOI 去重不与 RSS 重复。
 - Zotero 一键导入：勾选“存 Zotero”→ 本地队列 accepted。
   - 半自动（默认）：`zotero-export`（或 daily 自动刷新）生成 `data/queues/zotero_export.bib`，把该文件拖进 Zotero 即自动建档（DOI/arXiv 链接自动抓取元数据）。
-  - 全自动（可选）：`config/local.json` 配置 `zotero.api_key` / `zotero.user_id` / `auto_sync: true` 后，勾选存 Zotero 或运行 `zotero-sync` 会通过 Zotero Web API 自动创建条目 + 上传 PDF + 归类 + 打标签，无需任何手动步骤；失败自动回落到 .bib 兜底。
+  - 全自动（可选）：`config/local.json` 配置 `zotero.api_key` / `zotero.user_id` / `auto_sync: true` 后，勾选存 Zotero 或运行 `zotero-sync` 会通过 Zotero Web API 自动创建条目 + 上传 PDF + 归类；**不写任何 tag（标签由用户在 Zotero 手动管理）**，建档前按 DOI/标题/arXiv 查重，库中已有条目不会重复创建（只补挂缺失 PDF）。失败自动回落到 .bib 兜底。
   - Zotero API key 获取：https://www.zotero.org/settings/keys → Create new private key（勾选允许读写用户资料库）；user_id 在同页顶部显示。

@@ -277,8 +277,19 @@ def _render_block(conn, work, prev_user_region=None):
     if status_line:
         lines += ["", f"**状态**：{status_line}"]
     lines += ["", "#### A 建档（先看文章，再决定）", "", a_link]
+    zotero_link = _zotero_open_link(work["work_id"])
     if pdf_link:
-        lines += ["", "PDF：" + pdf_link + (f"｜SI：{si_link}" if si_link else "")]
+        extra = []
+        if si_link:
+            extra.append("SI：" + si_link)
+        if zotero_link:
+            extra.append(zotero_link)
+        line = "PDF：" + pdf_link
+        if extra:
+            line += "｜" + "｜".join(extra)
+        lines += ["", line]
+    elif zotero_link:
+        lines += ["", zotero_link]
     lines += ["", USER_BEGIN, user, USER_END, "", BLOCK_END]
     return "\n".join(lines)
 
@@ -494,6 +505,15 @@ def _zotero_queue_state(work_id):
         if e["work_id"] == work_id:
             return e["status"]
     return "not_in_queue"
+
+
+def _zotero_open_link(work_id):
+    """若该论文已同步到 Zotero，返回 Obsidian 可点击的 zotero:// 打开链接。"""
+    from la_zotero import load_queue
+    for e in load_queue():
+        if e.get("work_id") == work_id and e.get("zotero_item_key"):
+            return f"Zotero：[打开](zotero://select/items/0_{e['zotero_item_key']})"
+    return ""
 
 
 def _ensure_zotero_accepted(conn, work_id):

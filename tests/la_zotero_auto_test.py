@@ -22,6 +22,10 @@ def upload_flow():
     def handler(method, url, body=None, api_key=None, timeout=60,
                 content_type="application/json", headers=None):
         calls.append((method, url, body, headers))
+        if method == "GET" and "/items" in url and "q=" in url:
+            return 200, b"[]"
+        if method == "GET" and "/children" in url:
+            return 200, b"[]"
         if url.endswith("/items") and method == "POST":
             if isinstance(body, list) and body and body[0]["itemType"] == "journalArticle":
                 return 201, json.dumps({"successful": {"0": {"key": "ITEM1", "version": 1}}}).encode()
@@ -79,6 +83,7 @@ def run_all():
             entry = entry_call[2][0]
             assert entry["title"] == "Test Paper"
             assert entry["DOI"] == "10.1000/abc"
+            assert entry.get("tags") == [], "不得自动写入任何 tag"
             assert entry["creators"] == [
                 {"creatorType": "author", "firstName": "John", "lastName": "Smith"},
                 {"creatorType": "author", "firstName": "Jane", "lastName": "Doe"}], entry["creators"]
@@ -240,6 +245,71 @@ def run_all():
             assert r["ok"], r
             assert any("s3.example" in c[1] for c in calls2), "未配置 WebDAV 必须走官方三步上传"
         print("[PASS] 9. 未配置 WebDAV 时官方上传回归")
+
+        # ---- 10) 查重命中：不新建条目，PDF 挂到已有条目 ----
+        with mock.patch.object(lz, "_zotero_cfg", return_value={"api_key": "K", "user_id": "1", "auto_sync": True}):
+            calls = []
+            def dedup_handler(method, url, body=None, api_key=None, timeout=60,
+                              content_type="application/json", headers=None):
+                calls.append((method, url, body, headers))
+                if method == "GET" and "/items" in url and "q=" in url:
+                    return 200, json.dumps([{"key": "EXIST", "data": {
+                        "itemType": "journalArticle", "title": "Test Paper",
+                        "DOI": "10.1000/abc"}}]).encode()
+                if method == "GET" and "/children" in url:
+                    return 200, b"[]"
+                if url.endswith("/items") and method == "POST":
+                    if isinstance(body, list) and body and body[0]["itemType"] == "attachment":
+                        assert body[0]["parentItem"] == "EXIST", "附件必须挂到已有条目"
+                        return 201, json.dumps({"successful": {"0": {"key": "ATT1", "version": 2}}}).encode()
+                    return 500, b"dedup: unexpected journalArticle POST"
+                if url.endswith("/items/ATT1/file") and method == "POST":
+                    if isinstance(body, bytes) and body.startswith(b"upload="):
+                        return 204, b""
+                    return 200, json.dumps({"exists": False, "url": "https://s3.example/x",
+                                            "prefix": "PRE", "suffix": "POST", "uploadKey": "UK",
+                                            "contentType": "application/octet-stream"}).encode()
+                if "s3.example" in url and method == "POST":
+                    return 201, b""
+                if url.endswith("/items") and method == "DELETE":
+                    return 204, b""
+                return 500, b"unexpected: " + url.encode()
+            with mock.patch.object(lz, "_zotero_http", side_effect=dedup_handler):
+                r = lz.zotero_save_work(conn, "t:1")
+            assert r["ok"] and r["deduped"] is True and r["item_key"] == "EXIST", r
+            journals = [c for c in calls if c[0] == "POST" and isinstance(c[2], list) and c[2] and c[2][0].get("itemType") == "journalArticle"]
+            assert not journals, "查重命中后不得新建条目"
+            atts = [c for c in calls if c[0] == "POST" and isinstance(c[2], list) and c[2] and c[2][0].get("itemType") == "attachment"]
+            assert len(atts) == 1 and atts[0][2][0]["parentItem"] == "EXIST", atts
+        print("[PASS] 10. 查重命中不重复建档，PDF 挂到已有条目")
+
+        # ---- 11) 已有条目已带 PDF：不再补附件 ----
+        with mock.patch.object(lz, "_zotero_cfg", return_value={"api_key": "K", "user_id": "1", "auto_sync": True}):
+            calls = []
+            def haspdf_handler(method, url, body=None, api_key=None, timeout=60,
+                               content_type="application/json", headers=None):
+                calls.append((method, url, body))
+                if method == "GET" and "/items" in url and "q=" in url:
+                    return 200, json.dumps([{"key": "EXIST", "data": {
+                        "itemType": "journalArticle", "title": "Test Paper",
+                        "DOI": "10.1000/abc"}}]).encode()
+                if method == "GET" and "/children" in url:
+                    return 200, json.dumps([{"key": "CH1", "data": {
+                        "itemType": "attachment", "filename": "paper.pdf"}}]).encode()
+                return 500, b"unexpected: " + url.encode()
+            with mock.patch.object(lz, "_zotero_http", side_effect=haspdf_handler):
+                r = lz.zotero_save_work(conn, "t:1")
+            assert r["ok"] and r["deduped"] is True and r["pdf_attached"] is False, r
+            assert not [c for c in calls if c[0] == "POST"], "已有 PDF 时不得新建任何条目"
+        print("[PASS] 11. 已有 PDF 时不重复上传附件")
+
+        # ---- 12) 测试隔离：队列被重定向时禁止写真实 Zotero ----
+        with mock.patch.dict(os.environ, {"LITAGENT_ZOTERO_QUEUE": os.path.join(tmp, "iso.jsonl")}), \
+             mock.patch.object(lz, "_zotero_cfg", return_value={"api_key": "K", "user_id": "1", "auto_sync": True}):
+            assert not lz.zotero_auto_enabled(), "测试环境不得启用真实 Zotero 同步"
+            r = lz.zotero_save_work(conn, "t:1")
+            assert not r["ok"] and "未启用" in r["error"], r
+        print("[PASS] 12. LITAGENT_ZOTERO_QUEUE 重定向时禁止写真实 Zotero")
     print("zotero auto test: ALL PASS")
     return ok
 

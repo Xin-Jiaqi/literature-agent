@@ -102,7 +102,13 @@ def _zotero_cfg():
 
 def zotero_auto_enabled():
     z = _zotero_cfg()
-    return bool(z.get("auto_sync") and z.get("api_key") and z.get("user_id"))
+    if not (z.get("auto_sync") and z.get("api_key") and z.get("user_id")):
+        return False
+    # 测试隔离：队列被 LITAGENT_ZOTERO_QUEUE 重定向时视为测试环境，
+    # 禁止向真实 Zotero 写条目（防止 la_overview_test / acceptance 污染真实库）。
+    if os.environ.get("LITAGENT_ZOTERO_QUEUE"):
+        return False
+    return True
 
 
 def _zotero_http(method, url, body=None, api_key=None, timeout=60,
@@ -373,9 +379,86 @@ def _creators_from_authors(authors):
     return out
 
 
-def zotero_save_work(conn, work_id):
-    """把一篇论文自动建档到 Zotero（Web API）：条目 + PDF 附件 + collection + tags。
 
+def _norm_title(t):
+    return re.sub(r"[^a-z0-9]+", " ", (t or "").lower()).strip()
+
+
+def _zotero_search(api_key, user_id, q, qmode):
+    import urllib.parse
+    qs = urllib.parse.urlencode({"q": q, "qmode": qmode, "limit": 25, "format": "json"})
+    status, raw = _zotero_http("GET", f"https://api.zotero.org/users/{user_id}/items?{qs}",
+                               api_key=api_key)
+    if status != 200:
+        return []
+    try:
+        return json.loads(raw) or []
+    except Exception:
+        return []
+
+
+def _zotero_find_existing(api_key, user_id, work):
+    """按 DOI → 标题 → arXiv 编号在用户库中查重，返回已有条目 key 或 None。
+
+    只匹配非附件条目；标题按规范化比较，避免格式差异导致重复建档。
+    """
+    doi = (work["doi"] or "").strip()
+    if doi:
+        for it in _zotero_search(api_key, user_id, doi, "everything"):
+            d = it.get("data") or {}
+            if d.get("itemType") == "attachment":
+                continue
+            if (d.get("DOI") or "").strip().lower() == doi.lower():
+                return it.get("key")
+    title = (work["title"] or "").strip()
+    if title:
+        norm = _norm_title(title)
+        for it in _zotero_search(api_key, user_id, title, "titleCreatorYear"):
+            d = it.get("data") or {}
+            if d.get("itemType") == "attachment":
+                continue
+            if norm and _norm_title(d.get("title") or "") == norm:
+                return it.get("key")
+    arxiv_id = (work["arxiv_id"] or "").strip()
+    if arxiv_id:
+        q = arxiv_id.replace("arxiv:", "")
+        for it in _zotero_search(api_key, user_id, q, "everything"):
+            d = it.get("data") or {}
+            if d.get("itemType") == "attachment":
+                continue
+            hay = f"{d.get('url') or ''} {d.get('extra') or ''}"
+            if arxiv_id in hay or q in hay:
+                return it.get("key")
+    return None
+
+
+def _item_has_pdf(api_key, user_id, item_key):
+    """该条目是否已有 PDF 附件（任何 linkMode）。返回 True/False。"""
+    try:
+        status, raw = _zotero_http(
+            "GET", f"https://api.zotero.org/users/{user_id}/items/{item_key}/children?limit=50",
+            api_key=api_key)
+        if status != 200:
+            return False
+        for it in json.loads(raw) or []:
+            d = it.get("data") or {}
+            if d.get("itemType") != "attachment":
+                continue
+            fn = (d.get("filename") or "").lower()
+            if fn.endswith(".pdf") or (d.get("contentType") or "").lower() == "application/pdf":
+                return True
+    except Exception:
+        return False
+    return False
+
+
+def zotero_save_work(conn, work_id):
+    """把一篇论文自动建档到 Zotero（Web API）：条目 + PDF 附件 + collection。
+
+    规则：
+    - 不写任何 tag（标签完全由用户在 Zotero 里手动管理）。
+    - 建档前按 DOI / 标题 / arXiv 编号查重；库中已有条目时不再新建，
+      只补挂缺失的 PDF 附件，返回 deduped=True。
     要求 config/local.json 已配置 zotero.api_key / zotero.user_id / zotero.auto_sync=true。
     失败时返回 error，条目保留在本地队列，zotero_export.bib 仍可兜底。
     """
@@ -413,11 +496,26 @@ def zotero_save_work(conn, work_id):
         screen = conn.execute("SELECT * FROM screenings WHERE work_id=? ORDER BY id DESC LIMIT 1",
                               (work_id,)).fetchone()
         if screen:
-            main, _compat, ztags = zotero_suggestion(work, screen)
+            main, _compat, _ztags = zotero_suggestion(work, screen)
             main_coll = main or ""
-            entry["tags"] = [{"tag": t} for t in (ztags or []) if t]
+            # 标签不自动写入 Zotero（用户手动管理）；ztags 仅保留在本地队列作建议
     except Exception:
         pass
+    try:
+        existing = _zotero_find_existing(api_key, user_id, work)
+    except Exception:
+        existing = None
+    if existing:
+        # 查重命中：不新建条目，只补挂缺失的 PDF 附件
+        pdf_added = False
+        if pdf_path and os.path.exists(pdf_path) and valid_pdf_file(pdf_path):
+            if not _item_has_pdf(api_key, user_id, existing):
+                ok_up, detail = _zotero_upload_pdf(api_key, user_id, existing, pdf_path)
+                if not ok_up:
+                    return {"ok": False, "error": f"attach pdf to existing failed: {detail}"}
+                pdf_added = True
+        return {"ok": True, "item_key": existing, "deduped": True,
+                "pdf_attached": pdf_added, "collection": main_coll}
     try:
         status, raw = _zotero_http("POST", f"https://api.zotero.org/users/{user_id}/items",
                                    body=[entry], api_key=api_key)
@@ -460,7 +558,7 @@ def zotero_save_work(conn, work_id):
                 except Exception:
                     pass
                 return {"ok": False, "error": f"attachment failed: {detail}"}
-        return {"ok": True, "item_key": item_key, "collection": main_coll}
+        return {"ok": True, "item_key": item_key, "deduped": False, "collection": main_coll}
     except Exception as e:
         return {"ok": False, "error": str(e)}
 
@@ -490,6 +588,8 @@ def zotero_sync_queue(conn):
         if r.get("ok"):
             e["zotero_synced_at"] = now
             e["zotero_item_key"] = r.get("item_key", "")
+            if r.get("deduped"):
+                e["zotero_deduped"] = True
             e.pop("zotero_error", None)
             e.pop("zotero_last_attempt", None)
             e.pop("zotero_backoff_hours", None)
