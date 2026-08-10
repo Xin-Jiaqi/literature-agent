@@ -189,11 +189,17 @@ def _webdav_cfg():
 
 
 def _webdav_upload(api_key, user_id, att_key, pdf_path):
-    """把附件 PUT 到 Zotero WebDAV 目录（{url}/zotero/{user_id}/{att_key}），
-    再更新 API 的 md5/mtime。返回 (ok, detail)。
+    """按 Zotero 7+ WebDAV 格式上传附件：<key>.zip + <key>.prop + API md5/mtime。
+
+    用户坚果云上现有格式为 /dav/zotero/<itemKey>.zip（单文件 zip 包）与
+    <itemKey>.prop（<properties version="1"><mtime>..</mtime><hash>..</hash>）。
+    hash=文件 MD5、mtime=毫秒时间戳，均与 Zotero API 的 md5/mtime 一致，
+    本地客户端据此判断 WebDAV 上的文件是否为最新。返回 (ok, detail)。
     """
     import base64
     import hashlib
+    import io
+    import zipfile
     import urllib.request
     cfg = _webdav_cfg()
     base = (cfg.get("url") or "").rstrip("/")
@@ -205,17 +211,33 @@ def _webdav_upload(api_key, user_id, att_key, pdf_path):
         data = f.read()
     md5 = hashlib.md5(data).hexdigest()
     mtime = int(os.path.getmtime(pdf_path) * 1000)
-    target = f"{base}/zotero/{user_id}/{att_key}"
-    req = urllib.request.Request(target, data=data, method="PUT")
-    req.add_header("Authorization", "Basic " + base64.b64encode(
-        f"{username}:{password}".encode("utf-8")).decode("ascii"))
-    req.add_header("Content-Type", "application/octet-stream")
-    try:
-        with urllib.request.urlopen(req, timeout=300) as resp:
-            if resp.status not in (200, 201, 204):
-                return False, f"webdav PUT http {resp.status}"
-    except Exception as e:
-        return False, f"webdav PUT {e}"
+    fname = os.path.basename(pdf_path)
+
+    # 单文件 zip 包（Zotero 7+ WebDAV 格式）
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr(fname, data)
+    zip_bytes = buf.getvalue()
+    prop_xml = (f'<properties version="1"><mtime>{mtime}</mtime>'
+                f'<hash>{md5}</hash></properties>').encode("utf-8")
+
+    def _put(path, body, content_type):
+        req = urllib.request.Request(path, data=body, method="PUT")
+        req.add_header("Authorization", "Basic " + base64.b64encode(
+            f"{username}:{password}".encode("utf-8")).decode("ascii"))
+        req.add_header("Content-Type", content_type)
+        try:
+            with urllib.request.urlopen(req, timeout=300) as resp:
+                return resp.status in (200, 201, 204), resp.status
+        except Exception as e:
+            return False, str(e)
+
+    ok, st = _put(f"{base}/zotero/{att_key}.zip", zip_bytes, "application/zip")
+    if not ok:
+        return False, f"webdav PUT zip http {st}"
+    ok, st = _put(f"{base}/zotero/{att_key}.prop", prop_xml, "application/xml")
+    if not ok:
+        return False, f"webdav PUT prop http {st}"
     try:
         st, raw = _zotero_http("GET", f"https://api.zotero.org/users/{user_id}/items/{att_key}",
                                api_key=api_key)

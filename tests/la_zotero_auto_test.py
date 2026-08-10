@@ -212,11 +212,20 @@ def run_all():
                  mock.patch("urllib.request.urlopen", fake_urlopen):
                 ok_w, detail = lz._zotero_upload_pdf("K", "1", "ITEM1", pdf)
             assert ok_w, detail
-            put = fake_urlopen.call_args
-            req = put[0][0]
-            assert req.full_url == "https://dav.example.com/dav/zotero/1/ATTW", req.full_url
-            assert req.get_method() == "PUT"
-            assert "Basic " in req.get_header("Authorization")
+            puts = [c[0][0] for c in fake_urlopen.call_args_list]
+            assert len(puts) == 2, "必须 PUT .zip 和 .prop"
+            zip_req = next(r for r in puts if r.full_url.endswith(".zip"))
+            prop_req = next(r for r in puts if r.full_url.endswith(".prop"))
+            assert zip_req.full_url == "https://dav.example.com/dav/zotero/ATTW.zip", zip_req.full_url
+            assert prop_req.full_url == "https://dav.example.com/dav/zotero/ATTW.prop", prop_req.full_url
+            assert zip_req.get_method() == "PUT" and prop_req.get_method() == "PUT"
+            assert "Basic " in zip_req.get_header("Authorization")
+            import io, zipfile, hashlib
+            with zipfile.ZipFile(io.BytesIO(zip_req.data)) as zf:
+                assert zf.namelist() == ["paper.pdf"], zf.namelist()
+                assert hashlib.md5(zf.read("paper.pdf")).hexdigest() == hashlib.md5(open(pdf, "rb").read()).hexdigest()
+            prop = prop_req.data.decode("utf-8")
+            assert "<mtime>" in prop and "<hash>" in prop, prop
             patch = next(c for c in calls if c[0] == "PATCH")
             body = patch[2]
             assert body["md5"] and body["mtime"] > 0, body
