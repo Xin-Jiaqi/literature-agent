@@ -304,27 +304,77 @@ def _decided_on_overview(conn, work_id, date):
         (date, work_id)).fetchone() is not None
 
 
+def _overview_entries_from_files():
+    """从已生成的总览 markdown 扫描每个 work 最早出现日期（兼容旧页面迁移）。
+
+    返回 {work_id: first_date}；旧页面没有 DB 记录时用它推断“首次进入总览日期”。
+    """
+    earliest = {}
+    for d in list_overview_dates():
+        path = overview_path(d)
+        if not os.path.exists(path):
+            continue
+        try:
+            with open(path, encoding="utf-8") as f:
+                text = f.read()
+            for m in WORK_MARK_RE.finditer(text):
+                wid = m.group(1)
+                if wid not in earliest or d < earliest[wid]:
+                    earliest[wid] = d
+        except OSError:
+            continue
+    return earliest
+
+
+def _first_overview_date(conn, work_id, date, file_entries=None):
+    """work 首次进入用户前台的稳定日期（数据库事实）。
+
+    优先 overview_entries；无记录时从历史总览文件推断最早出现日期（兼容旧页面）；
+    仍无则视为今天首次进入。写入 overview_entries（INSERT OR IGNORE，幂等不覆盖）。
+    """
+    row = conn.execute(
+        "SELECT first_overview_date FROM overview_entries WHERE work_id=?", (work_id,)).fetchone()
+    if row:
+        return row["first_overview_date"]
+    first = date
+    if file_entries and work_id in file_entries and file_entries[work_id] < date:
+        first = file_entries[work_id]
+    conn.execute(
+        "INSERT OR IGNORE INTO overview_entries (work_id, first_overview_date, first_seen_at) "
+        "VALUES (?,?,?)", (work_id, first, now_iso()))
+    conn.commit()
+    return first
+
+
 def render_overview(conn, date, prev_text=None):
+    """按“今日”数据库语义渲染总览。
+
+    - 今日新文献：non-historical、首次进入总览日期=今天、未决定
+    - 今日历史补回：historical_recovery、首次进入=今天、未决定
+    - 之前未决定：更早日期已进入总览、至今未决定
+    - 今日已处理：只含在当前 overview_date 上完成 disposition 的论文
+    """
     works = _completed_a_works(conn)
     decided = [w for w in works if (w["reading_status"] or "") in DECIDED_STATUSES]
     # 已处理区只显示“在这份总览上被决定”的，避免每天重复展示已经决定过的论文
     decided_today = [w for w in decided if _decided_on_overview(conn, w["work_id"], date)]
     pending = [w for w in works if (w["reading_status"] or "") not in DECIDED_STATUSES]
-    live = [w for w in pending if not (w["historical_discovery"] or 0)]
-    hist = [w for w in pending if (w["historical_discovery"] or 0)]
+    file_entries = _overview_entries_from_files()
+    first_dates = {w["work_id"]: _first_overview_date(conn, w["work_id"], date, file_entries)
+                   for w in pending}
+    live_new = [w for w in pending if not (w["historical_discovery"] or 0)
+                and first_dates[w["work_id"]] == date]
+    hist_new = [w for w in pending if (w["historical_discovery"] or 0)
+                and first_dates[w["work_id"]] == date]
+    prev_undecided = [w for w in pending if first_dates[w["work_id"]] < date]
     prev_blocks = parse_overview_text(prev_text) if prev_text else {}
-    waiting = 0
-    for w in pending:
-        prev = prev_blocks.get(w["work_id"])
-        checked = _checked_dispositions(prev["user_region"]) if prev else []
-        if not checked:
-            waiting += 1
     lines = [
         f"# {date} 文献总览", "",
-        f"> 今日新文献：{len(live)}",
-        f"> 历史补回：{len(hist)}",
-        f"> 等待决定：{waiting}",
-        f"> 已处理：{len(decided_today)}", "",
+        f"> 今日新文献：{len(live_new)}",
+        f"> 今日历史补回：{len(hist_new)}",
+        f"> 之前未决定：{len(prev_undecided)}",
+        f"> 今日已处理：{len(decided_today)}",
+        f"> 等待决定：{len(pending)}", "",
         "说明：勾选后运行 `sync-overview`（或由 daily 自动同步）即生效；没有任何勾选 = 什么都不做。",
         "", "---", "",
     ]
@@ -332,7 +382,7 @@ def render_overview(conn, date, prev_text=None):
     for w in works:
         if w["work_id"] not in ordered:
             ordered[w["work_id"]] = None
-    sections = [("今日新文献", live), ("历史补回", hist)]
+    sections = [("今日新文献", live_new), ("今日历史补回", hist_new), ("之前未决定", prev_undecided)]
     for title, items in sections:
         lines.append(f"## {title}\n")
         idx = 0
@@ -348,7 +398,7 @@ def render_overview(conn, date, prev_text=None):
         if not items:
             lines.append("（无）\n")
     if decided_today:
-        lines.append("## 已处理（不在待办区）\n")
+        lines.append("## 今日已处理（不在待办区）\n")
         idx = 0
         for w in decided_today:
             prev = ordered.get(w["work_id"])
@@ -635,7 +685,31 @@ def _append_direction_feedback(date, work_id, title, text):
     return True
 
 
-def run_sync_overview(conn, date):
+def refresh_frontend_state(conn, overview_dates=None, refresh_handoff=True):
+    """状态真正变化后统一刷新前台：相关总览 + HANDOFF.md + PROJECT_STATE.json。
+
+    - overview_dates：None=刷新所有已生成总览；否则只刷新给定日期（不动历史页）。
+    - 幂等：总览只是 render/write，不会再次触发 sync（无递归）；无变化时调用方不应调用。
+    """
+    dates = sorted(set(overview_dates)) if overview_dates else list_overview_dates()
+    refreshed = []
+    for d in dates:
+        try:
+            r = run_overview(conn, d)
+            refreshed.append({"date": d, "path": r["path"]})
+        except Exception as e:
+            refreshed.append({"date": d, "error": str(e)})
+    out = {"overviews": refreshed}
+    if refresh_handoff:
+        try:
+            from la_handoff import run_handoff
+            out["handoff"] = run_handoff(conn)
+        except Exception as e:
+            out["handoff_error"] = str(e)
+    return out
+
+
+def run_sync_overview(conn, date, refresh=True):
     path = overview_path(date)
     if not os.path.exists(path):
         return {"date": date, "path": "", "error": "overview not found", "applied": 0,
@@ -703,21 +777,38 @@ def run_sync_overview(conn, date):
             summary["applied_works"].append(work_id)
         else:
             summary["skipped"] += 1
+    if summary["applied"] and refresh:
+        # 状态真正变化：立即重绘本页（链接指向新阶段）+ 刷新 HANDOFF/PROJECT_STATE
+        try:
+            summary["refresh"] = refresh_frontend_state(conn, [date], refresh_handoff=True)
+        except Exception as e:
+            summary["refresh_error"] = str(e)
     return summary
 
 
-def sync_old_overviews(conn, today):
+def sync_old_overviews(conn, today, refresh=True):
     """daily 开始时：同步所有已生成总览的既有批注（含当天，幂等）。
 
     当天首次 daily 时今天的文件尚未生成，不会误同步；后续时间点（或 skipped 分支）
     会把用户当天新勾选的批注应用掉，无需等到明天。
+
+    refresh=True 时：先完整同步所有日期，最后一次性重绘 actually changed 的日期
+    （不逐篇重画），并刷新 HANDOFF/PROJECT_STATE。
     """
     results = []
     for date in list_overview_dates():
         if date > today:
             continue
-        results.append(run_sync_overview(conn, date))
-    return {"synced": [r for r in results if r.get("applied")], "total_old": len(results)}
+        results.append(run_sync_overview(conn, date, refresh=False))
+    changed = [r for r in results if r.get("applied")]
+    out = {"synced": changed, "total_old": len(results)}
+    if refresh and changed:
+        try:
+            out["refresh"] = refresh_frontend_state(
+                conn, [r["date"] for r in changed], refresh_handoff=True)
+        except Exception as e:
+            out["refresh_error"] = str(e)
+    return out
 
 
 # ---------- 链接校验 ----------

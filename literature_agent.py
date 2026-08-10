@@ -1378,10 +1378,14 @@ class RunLogger:
 # ================= daily 总入口 =================
 
 def _last_ok_daily_date(conn):
-    """最近一次成功/部分成功的 daily 运行日期；没有记录则返回 None。"""
+    """最近一次真正完整成功（status='ok'）的 daily 运行日期；没有记录则返回 None。
+
+    partial 不算成功：某个来源失败时当天仍有缺口，后续时间点必须允许重跑，
+    catchup 补课窗口也按最后一次完整成功计算。
+    """
     row = conn.execute(
         "SELECT finished_at FROM processing_runs WHERE command='daily' "
-        "AND status IN ('ok','partial') ORDER BY finished_at DESC LIMIT 1"
+        "AND status='ok' ORDER BY finished_at DESC LIMIT 1"
     ).fetchone()
     if not row or not row["finished_at"]:
         return None
@@ -1392,9 +1396,12 @@ def _last_ok_daily_date(conn):
 
 
 def _daily_ok_today(conn, today):
-    """当天是否已有成功/部分成功的 daily 运行（launchd 多时间点守卫）。"""
+    """当天是否已有真正完整成功（status='ok'）的 daily 运行（launchd 多时间点守卫）。
+
+    partial/failed 都不算成功：07:00 部分失败后，08:00/09:00/10:00 必须允许重跑重活。
+    """
     row = conn.execute(
-        "SELECT 1 FROM processing_runs WHERE command='daily' AND status IN ('ok','partial') "
+        "SELECT 1 FROM processing_runs WHERE command='daily' AND status='ok' "
         "AND date(finished_at)=? LIMIT 1", (today,)
     ).fetchone()
     return row is not None
@@ -1415,8 +1422,9 @@ def run_daily(today=None, run_id=None, force=False):
         except Exception as e:
             logger.log("error", f"overview sync old failed: {e}")
         if not force and _daily_ok_today(conn, today):
-            # launchd 7/8/9/10 多时间点：当天已成功一次即跳过重活，
-            # 只保留上面的轻量批注同步；失败/部分成功由后续时间点自动重试。
+            # launchd 7/8/9/10 多时间点：当天已有 status='ok' 才算真正成功，
+            # 后续时间点跳过重活，只保留上面的轻量批注同步；
+            # partial/failed 由后续时间点自动重跑重活。
             summary["skipped"] = True
             summary["new_works"] = 0
             summary["processed"] = 0
@@ -2194,19 +2202,35 @@ def main():
         conn = connect()
         result = mark_a_completed(conn, args.work_id, path=args.path)
         result["queue"] = build_a_queue(conn)
+        try:
+            from la_overview import refresh_frontend_state
+            result["frontend"] = refresh_frontend_state(
+                conn, [date.today().isoformat()], refresh_handoff=True)
+        except Exception as e:
+            result["frontend_error"] = str(e)
         print(json.dumps(result, ensure_ascii=False, indent=1))
     elif cmd == "decide":
         from la_workflow import apply_decision
-        print(json.dumps(
-            apply_decision(connect(), args.work_id, args.decision, note=args.note),
-            ensure_ascii=False, indent=1,
-        ))
+        conn = connect()
+        result = apply_decision(conn, args.work_id, args.decision, note=args.note)
+        try:
+            from la_overview import refresh_frontend_state
+            result["frontend"] = refresh_frontend_state(
+                conn, [date.today().isoformat()], refresh_handoff=True)
+        except Exception as e:
+            result["frontend_error"] = str(e)
+        print(json.dumps(result, ensure_ascii=False, indent=1))
     elif cmd == "flag":
         from la_workflow import set_flag
-        print(json.dumps(
-            set_flag(connect(), args.work_id, args.flag, on=not args.unset, note=args.note),
-            ensure_ascii=False, indent=1,
-        ))
+        conn = connect()
+        result = set_flag(conn, args.work_id, args.flag, on=not args.unset, note=args.note)
+        try:
+            from la_overview import refresh_frontend_state
+            result["frontend"] = refresh_frontend_state(
+                conn, [date.today().isoformat()], refresh_handoff=True)
+        except Exception as e:
+            result["frontend_error"] = str(e)
+        print(json.dumps(result, ensure_ascii=False, indent=1))
     elif cmd == "a-job":
         from la_aworker import create_job, render_README
         conn = connect()

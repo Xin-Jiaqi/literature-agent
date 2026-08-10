@@ -219,6 +219,7 @@ def _setup(tmp):
     os.environ["LITAGENT_ZOTERO_QUEUE"] = os.path.join(tmp, "zotero_queue.jsonl")
     os.environ["LITAGENT_FEEDBACK"] = os.path.join(tmp, "feedback.jsonl")
     os.environ["LITAGENT_A_QUEUE"] = os.path.join(tmp, "a_queue.jsonl")
+    os.environ["LITAGENT_HANDOFF_DIR"] = os.path.join(tmp, "state")
 
     # 覆盖模块级路径（模块可能已被真实环境导入）
     lwf.VAULT_ROOT = vault_lit
@@ -310,7 +311,7 @@ def run_all():
         assert "历史补回：1" in text
         assert "Blocked Paper Without PDF" not in text, "blocked PDF 不应进入正文"
         assert "另有 1 篇重要论文全文暂未获取" in text, "blocked 提示应存在"
-        assert "## 今日新文献" in text and "## 历史补回" in text
+        assert "## 今日新文献" in text and "## 今日历史补回" in text
         assert f"![[Literatures/每日文献/_文献包/{WIDS['a']}/A.md]]" in text, "初始 A 链接应指向 _文献包"
         assert f"[[Literatures/每日文献/_文献包/{WIDS['a']}/paper.pdf]]" in text, "PDF 链接应指向 _文献包 副本"
 

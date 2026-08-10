@@ -128,6 +128,10 @@ def run_all():
             def quota_handler(method, url, body=None, api_key=None, timeout=60,
                               content_type="application/json", headers=None):
                 calls.append((method, url, body))
+                if method == "GET" and "/items" in url and "q=" in url:
+                    return 200, b"[]"
+                if method == "GET" and "/children" in url:
+                    return 200, b"[]"
                 if url.endswith("/items") and method == "POST":
                     if isinstance(body, list) and body and body[0]["itemType"] == "journalArticle":
                         return 201, json.dumps({"successful": {"0": {"key": "ITEMQ", "version": 1}}}).encode()
@@ -310,6 +314,141 @@ def run_all():
             r = lz.zotero_save_work(conn, "t:1")
             assert not r["ok"] and "未启用" in r["error"], r
         print("[PASS] 12. LITAGENT_ZOTERO_QUEUE 重定向时禁止写真实 Zotero")
+
+        # ---- 13) 查重 fail closed：DOI lookup 500 → 不创建条目 ----
+        with mock.patch.object(lz, "_zotero_cfg", return_value={"api_key": "K", "user_id": "1", "auto_sync": True}):
+            calls = []
+            def fail500_handler(method, url, body=None, api_key=None, timeout=60,
+                                content_type="application/json", headers=None):
+                calls.append((method, url))
+                if method == "GET" and "/items" in url and "q=" in url:
+                    return 500, b"boom"
+                if url.endswith("/items") and method == "POST":
+                    return 201, json.dumps({"successful": {"0": {"key": "BAD", "version": 1}}}).encode()
+                return 500, b"unexpected: " + url.encode()
+            with mock.patch.object(lz, "_zotero_http", side_effect=fail500_handler):
+                r = lz.zotero_save_work(conn, "t:1")
+            assert not r["ok"] and "dedup lookup failed" in r["error"], r
+            assert not [c for c in calls if c[0] == "POST"], "查重失败时不得创建条目"
+        print("[PASS] 13. DOI lookup 500 → 不创建 item（fail closed）")
+
+        # ---- 14) 查重 fail closed：DOI lookup 网络异常 → 不创建条目 ----
+        with mock.patch.object(lz, "_zotero_cfg", return_value={"api_key": "K", "user_id": "1", "auto_sync": True}):
+            calls = []
+            def net_handler(method, url, body=None, api_key=None, timeout=60,
+                            content_type="application/json", headers=None):
+                calls.append((method, url))
+                if method == "GET" and "/items" in url and "q=" in url:
+                    raise Exception("network down")
+                if url.endswith("/items") and method == "POST":
+                    return 201, json.dumps({"successful": {"0": {"key": "BAD", "version": 1}}}).encode()
+                return 500, b"unexpected: " + url.encode()
+            with mock.patch.object(lz, "_zotero_http", side_effect=net_handler):
+                r = lz.zotero_save_work(conn, "t:1")
+            assert not r["ok"] and "dedup lookup failed" in r["error"], r
+            assert not [c for c in calls if c[0] == "POST"], "网络异常时不得创建条目"
+        print("[PASS] 14. DOI lookup 网络异常 → 不创建 item（fail closed）")
+
+        # ---- 15) 三路查重都明确 empty → 才允许创建 ----
+        with mock.patch.object(lz, "_zotero_cfg", return_value={"api_key": "K", "user_id": "1", "auto_sync": True}):
+            calls = []
+            def empty_handler(method, url, body=None, api_key=None, timeout=60,
+                              content_type="application/json", headers=None):
+                calls.append((method, url))
+                if method == "GET" and "/items" in url and "q=" in url:
+                    return 200, b"[]"
+                if method == "GET" and "/children" in url:
+                    return 200, b"[]"
+                if url.endswith("/items") and method == "POST":
+                    if isinstance(body, list) and body and body[0]["itemType"] == "journalArticle":
+                        return 201, json.dumps({"successful": {"0": {"key": "NEW1", "version": 1}}}).encode()
+                    if isinstance(body, list) and body and body[0]["itemType"] == "attachment":
+                        return 201, json.dumps({"successful": {"0": {"key": "ATT1", "version": 2}}}).encode()
+                if url.endswith("/items/ATT1/file") and method == "POST":
+                    if isinstance(body, bytes) and body.startswith(b"upload="):
+                        return 204, b""
+                    return 200, json.dumps({"exists": False, "url": "https://s3.example/x",
+                                            "prefix": "PRE", "suffix": "POST", "uploadKey": "UK",
+                                            "contentType": "application/octet-stream"}).encode()
+                if "s3.example" in url and method == "POST":
+                    return 201, b""
+                if url.endswith("/items") and method == "DELETE":
+                    return 204, b""
+                return 500, b"unexpected: " + url.encode()
+            with mock.patch.object(lz, "_zotero_http", side_effect=empty_handler):
+                r = lz.zotero_save_work(conn, "t:1")
+            assert r["ok"] and r["item_key"] == "NEW1" and r["deduped"] is False, r
+            searches = [c for c in calls if c[0] == "GET" and "q=" in c[1]]
+            assert len(searches) >= 2, "DOI+title 都明确 empty 后才创建"
+        print("[PASS] 15. 三路查重明确 NOT_FOUND → 才创建")
+
+        # ---- 16) children GET 500 → 不补 PDF，返回失败 ----
+        with mock.patch.object(lz, "_zotero_cfg", return_value={"api_key": "K", "user_id": "1", "auto_sync": True}):
+            calls = []
+            def childfail_handler(method, url, body=None, api_key=None, timeout=60,
+                                  content_type="application/json", headers=None):
+                calls.append((method, url))
+                if method == "GET" and "/items" in url and "q=" in url:
+                    return 200, json.dumps([{"key": "EXIST", "data": {
+                        "itemType": "journalArticle", "title": "Test Paper",
+                        "DOI": "10.1000/abc"}}]).encode()
+                if method == "GET" and "/children" in url:
+                    return 500, b"children boom"
+                if url.endswith("/items") and method == "POST":
+                    return 201, json.dumps({"successful": {"0": {"key": "BAD", "version": 1}}}).encode()
+                return 500, b"unexpected: " + url.encode()
+            with mock.patch.object(lz, "_zotero_http", side_effect=childfail_handler):
+                r = lz.zotero_save_work(conn, "t:1")
+            assert not r["ok"] and "children lookup failed" in r["error"], r
+            assert not [c for c in calls if c[0] == "POST"], "children 查询失败时不得补附件"
+        print("[PASS] 16. children GET 500 → 不补 PDF（fail closed）")
+
+        # ---- 17) API 恢复后重试：只创建一个条目，不重复 ----
+        with mock.patch.object(lz, "_zotero_cfg", return_value={"api_key": "K", "user_id": "1", "auto_sync": True}):
+            mode = {"n": 0}
+            calls = []
+            def recover_handler(method, url, body=None, api_key=None, timeout=60,
+                                content_type="application/json", headers=None):
+                calls.append((method, url, body))
+                if method == "GET" and "/items" in url and "q=" in url:
+                    mode["n"] += 1
+                    if mode["n"] == 1:
+                        raise Exception("network down")
+                    if mode["n"] <= 3:
+                        return 200, b"[]"
+                    return 200, json.dumps([{"key": "ONLY1", "data": {
+                        "itemType": "journalArticle", "title": "Test Paper",
+                        "DOI": "10.1000/abc"}}]).encode()
+                if method == "GET" and "/children" in url:
+                    return 200, b"[]"
+                if url.endswith("/items") and method == "POST":
+                    if isinstance(body, list) and body and body[0]["itemType"] == "journalArticle":
+                        return 201, json.dumps({"successful": {"0": {"key": "ONLY1", "version": 1}}}).encode()
+                    if isinstance(body, list) and body and body[0]["itemType"] == "attachment":
+                        assert body[0]["parentItem"] == "ONLY1"
+                        return 201, json.dumps({"successful": {"0": {"key": "ATT1", "version": 2}}}).encode()
+                if url.endswith("/items/ATT1/file") and method == "POST":
+                    if isinstance(body, bytes) and body.startswith(b"upload="):
+                        return 204, b""
+                    return 200, json.dumps({"exists": False, "url": "https://s3.example/x",
+                                            "prefix": "PRE", "suffix": "POST", "uploadKey": "UK",
+                                            "contentType": "application/octet-stream"}).encode()
+                if "s3.example" in url and method == "POST":
+                    return 201, b""
+                if url.endswith("/items") and method == "DELETE":
+                    return 204, b""
+                return 500, b"unexpected: " + url.encode()
+            with mock.patch.object(lz, "_zotero_http", side_effect=recover_handler):
+                r1 = lz.zotero_save_work(conn, "t:1")
+                assert not r1["ok"] and "dedup lookup failed" in r1["error"], r1
+                r2 = lz.zotero_save_work(conn, "t:1")
+                assert r2["ok"] and r2["item_key"] == "ONLY1" and r2["deduped"] is False, r2
+                r3 = lz.zotero_save_work(conn, "t:1")
+                assert r3["ok"] and r3["item_key"] == "ONLY1" and r3["deduped"] is True, r3
+            journals = [c for c in calls if c[0] == "POST" and isinstance(c[2], list)
+                        and c[2] and c[2][0].get("itemType") == "journalArticle"]
+            assert len(journals) == 1, "恢复后只创建一个条目，重试命中已有条目"
+        print("[PASS] 17. API 恢复后重试不重复建档")
     print("zotero auto test: ALL PASS")
     return ok
 

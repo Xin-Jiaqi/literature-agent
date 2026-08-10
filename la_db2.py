@@ -105,6 +105,13 @@ CREATE TABLE IF NOT EXISTS overview_syncs (
 );
 CREATE INDEX IF NOT EXISTS idx_overview_syncs ON overview_syncs(overview_date, work_id);
 
+CREATE TABLE IF NOT EXISTS overview_entries (
+  work_id TEXT PRIMARY KEY,
+  first_overview_date TEXT NOT NULL,
+  first_seen_at TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_overview_entries_date ON overview_entries(first_overview_date);
+
 CREATE TABLE IF NOT EXISTS workflow_events (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   work_id TEXT NOT NULL,

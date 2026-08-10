@@ -288,6 +288,10 @@ def t16(tmp):
         def fake_http(method, url, body=None, api_key=None, timeout=60,
                       content_type="application/json", headers=None):
             calls.append((method, url, body))
+            if method == "GET" and "/items" in url and "q=" in url:
+                return 200, b"[]"
+            if method == "GET" and "/children" in url:
+                return 200, b"[]"
             if method == "POST" and isinstance(body, list) and body and body[0].get("itemType") == "journalArticle":
                 return 201, json.dumps([{"successful": {"0": {"key": "ITEM1", "version": 1}}}]).encode()
             if url.endswith("/collections") and method == "GET":

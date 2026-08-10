@@ -43,8 +43,8 @@ flowchart TD
     S -->|RADAR| RA[雷达信号]
     S -->|DROP| DR[不占注意力]
     P --> Q[reconcile + 三队列核验]
-    Q -->|live 今日新发现 MUST| LQ[live_must ★立即执行 A]
-    Q -->|历史回放找回的 MUST| HQ[historical_recovery<br/>空闲时后台补 A]
+    Q -->|live 今日新发现 MUST| LQ[live_must ★立即进入 A 队列]
+    Q -->|历史回放找回的 MUST| HQ[historical_recovery<br/>空闲时进入 A 队列]
     Q -->|PDF 缺失| BP[blocked_pdf 单独保留<br/>不伪造]
     LQ --> AW[A worker: 一次任务连续消费整队列<br/>PDF→全文→A Skill→内容校验→a-complete]
     HQ --> AW
@@ -166,7 +166,7 @@ python3 literature_agent.py handoff          # 刷新接手状态
 
 - 调度：macOS launchd（`automation/install_launchagent.sh`），每天 **07:00 / 08:00 / 09:00 / 10:00** 各跑一次 `literature_agent.py daily`，一次完成 collect → dedup → screen → process → A 队列 → digest → 总览 → zotero-export。
 - 批注近实时同步：`automation/install_sync_agent.sh` 安装第二个 launchd agent，**每 60 秒**跑 `sync-overview --all`（纯本地读文件 + DB，无网络、无模型调用），勾选后约 1 分钟内自动生效。
-- 当天守卫：当天已成功（ok/partial）跑过一次后，后续时间点自动跳过重活，只做轻量批注同步（`sync_old_overviews`）；失败则由下一个时间点自动重试。手动 `daily --force` 可强制重跑。
+- 当天守卫：只有 status=`ok`（当天真正完整成功）时，后续时间点才跳过重活，只做轻量批注同步（`sync_old_overviews`）；`partial`（有来源失败）与 `failed` 都**不算成功**，08/09/10 时间点必须允许重跑，补课窗口也按最后一次 `ok` 计算。手动 `daily --force` 可强制重跑。
 - 重要：两个 agent 都必须用 `/Library/Frameworks/Python.framework/Versions/3.12/bin/python3`（不能用 `/usr/bin/python3`——CLT 二进制在 launchd 下被 macOS TCC 拦截，无法读取 Desktop 目录；2026-08-10 已实测修复）。
 - 错过点：电脑睡眠/关机错过的时间点，launchd 在唤醒后补跑错过的任务；7/8/9/10 四档进一步降低全天无运行的概率。
 - 自动补课（`run_daily` 内置，幂等）：距上次成功 daily 超过 1 天，把 arXiv/Crossref/OpenAlex 窗口拉大到 `gap+1` 天；超过 7 天先跑 `historical-replay`（覆盖缺口的 arXiv/Crossref/OpenAlex 历史）再正常收集。

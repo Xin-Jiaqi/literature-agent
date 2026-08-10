@@ -4,7 +4,7 @@
 
 1. **每日 daily**：`com.jiaqi.literature-agent.plist`
    - 每天 **07:00 / 08:00 / 09:00 / 10:00** 各跑一次 `literature_agent.py daily`。
-   - 当天已成功跑过一次后，后续时间点自动跳过重活，只做轻量批注同步；失败由下一个时间点重试。
+   - 当天只有 **status=ok（完整成功）** 时，后续时间点才跳过重活，只做轻量批注同步；**partial（有来源失败）与 failed 都允许后续时间点重跑**，补课窗口按最后一次 ok 计算。
    - 错过（关机/睡眠/无网）的时间点：唤醒后 launchd 补跑；`daily` 内置自动补课（>1 天拉大窗口、>7 天 historical-replay）。
 
 2. **批注近实时同步**：`com.jiaqi.literature-agent-sync.plist`

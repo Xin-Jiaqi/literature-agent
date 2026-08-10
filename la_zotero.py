@@ -384,62 +384,99 @@ def _norm_title(t):
     return re.sub(r"[^a-z0-9]+", " ", (t or "").lower()).strip()
 
 
+class ZoteroLookupError(Exception):
+    """Zotero 查重/附件查询失败（HTTP != 200 / JSON 解析失败 / 网络异常）。
+
+    上层必须 fail closed：不能把失败当成“没有找到”，否则会在 API 异常时制造重复条目。
+    """
+
+
 def _zotero_search(api_key, user_id, q, qmode):
+    """搜索用户库；真实失败（网络/HTTP/JSON）时抛 ZoteroLookupError。
+
+    绝不返回 [] 冒充 not found。
+    """
     import urllib.parse
     qs = urllib.parse.urlencode({"q": q, "qmode": qmode, "limit": 25, "format": "json"})
-    status, raw = _zotero_http("GET", f"https://api.zotero.org/users/{user_id}/items?{qs}",
-                               api_key=api_key)
+    try:
+        status, raw = _zotero_http(
+            "GET", f"https://api.zotero.org/users/{user_id}/items?{qs}", api_key=api_key)
+    except Exception as e:
+        raise ZoteroLookupError(f"search request failed: {e}")
     if status != 200:
-        return []
+        raise ZoteroLookupError(f"search http {status}: {raw[:200]}")
     try:
         return json.loads(raw) or []
-    except Exception:
-        return []
+    except Exception as e:
+        raise ZoteroLookupError(f"search json parse failed: {e}")
 
 
 def _zotero_find_existing(api_key, user_id, work):
-    """按 DOI → 标题 → arXiv 编号在用户库中查重，返回已有条目 key 或 None。
+    """按 DOI → 标题 → arXiv 编号在用户库中查重（fail closed）。
 
-    只匹配非附件条目；标题按规范化比较，避免格式差异导致重复建档。
+    返回三态 dict：
+      {"status": "found", "item_key": ...}
+      {"status": "not_found"}
+      {"status": "failed", "error": ...}
+    只有明确 not_found 才允许上层 POST 新条目；DOI/标题/arXiv 任一查询真实失败
+    （网络/HTTP/JSON）都返回 failed，不得偷偷当 not_found。
     """
-    doi = (work["doi"] or "").strip()
-    if doi:
-        for it in _zotero_search(api_key, user_id, doi, "everything"):
-            d = it.get("data") or {}
-            if d.get("itemType") == "attachment":
-                continue
-            if (d.get("DOI") or "").strip().lower() == doi.lower():
-                return it.get("key")
-    title = (work["title"] or "").strip()
-    if title:
-        norm = _norm_title(title)
-        for it in _zotero_search(api_key, user_id, title, "titleCreatorYear"):
-            d = it.get("data") or {}
-            if d.get("itemType") == "attachment":
-                continue
-            if norm and _norm_title(d.get("title") or "") == norm:
-                return it.get("key")
-    arxiv_id = (work["arxiv_id"] or "").strip()
-    if arxiv_id:
-        q = arxiv_id.replace("arxiv:", "")
-        for it in _zotero_search(api_key, user_id, q, "everything"):
-            d = it.get("data") or {}
-            if d.get("itemType") == "attachment":
-                continue
-            hay = f"{d.get('url') or ''} {d.get('extra') or ''}"
-            if arxiv_id in hay or q in hay:
-                return it.get("key")
-    return None
+    try:
+        doi = (work["doi"] or "").strip()
+        if doi:
+            try:
+                for it in _zotero_search(api_key, user_id, doi, "everything"):
+                    d = it.get("data") or {}
+                    if d.get("itemType") == "attachment":
+                        continue
+                    if (d.get("DOI") or "").strip().lower() == doi.lower():
+                        return {"status": "found", "item_key": it.get("key")}
+            except ZoteroLookupError as e:
+                return {"status": "failed", "error": f"doi lookup failed: {e}"}
+        title = (work["title"] or "").strip()
+        if title:
+            try:
+                norm = _norm_title(title)
+                for it in _zotero_search(api_key, user_id, title, "titleCreatorYear"):
+                    d = it.get("data") or {}
+                    if d.get("itemType") == "attachment":
+                        continue
+                    if norm and _norm_title(d.get("title") or "") == norm:
+                        return {"status": "found", "item_key": it.get("key")}
+            except ZoteroLookupError as e:
+                return {"status": "failed", "error": f"title lookup failed: {e}"}
+        arxiv_id = (work["arxiv_id"] or "").strip()
+        if arxiv_id:
+            q = arxiv_id.replace("arxiv:", "")
+            try:
+                for it in _zotero_search(api_key, user_id, q, "everything"):
+                    d = it.get("data") or {}
+                    if d.get("itemType") == "attachment":
+                        continue
+                    hay = f"{d.get('url') or ''} {d.get('extra') or ''}"
+                    if arxiv_id in hay or q in hay:
+                        return {"status": "found", "item_key": it.get("key")}
+            except ZoteroLookupError as e:
+                return {"status": "failed", "error": f"arxiv lookup failed: {e}"}
+        return {"status": "not_found"}
+    except Exception as e:
+        return {"status": "failed", "error": str(e)}
 
 
 def _item_has_pdf(api_key, user_id, item_key):
-    """该条目是否已有 PDF 附件（任何 linkMode）。返回 True/False。"""
+    """该条目是否已有 PDF 附件（任何 linkMode）。三态：True / False / None(查询失败)。
+
+    只有明确 False（无 PDF）才允许上层补挂附件；查询失败返回 None，上层必须延迟/失败。
+    """
     try:
         status, raw = _zotero_http(
             "GET", f"https://api.zotero.org/users/{user_id}/items/{item_key}/children?limit=50",
             api_key=api_key)
-        if status != 200:
-            return False
+    except Exception as e:
+        return None
+    if status != 200:
+        return None
+    try:
         for it in json.loads(raw) or []:
             d = it.get("data") or {}
             if d.get("itemType") != "attachment":
@@ -448,7 +485,7 @@ def _item_has_pdf(api_key, user_id, item_key):
             if fn.endswith(".pdf") or (d.get("contentType") or "").lower() == "application/pdf":
                 return True
     except Exception:
-        return False
+        return None
     return False
 
 
@@ -501,15 +538,20 @@ def zotero_save_work(conn, work_id):
             # 标签不自动写入 Zotero（用户手动管理）；ztags 仅保留在本地队列作建议
     except Exception:
         pass
-    try:
-        existing = _zotero_find_existing(api_key, user_id, work)
-    except Exception:
-        existing = None
-    if existing:
+    dedup = _zotero_find_existing(api_key, user_id, work)
+    if dedup["status"] == "failed":
+        # fail closed：查重失败不得创建条目，本地队列保留进入 retry/backoff
+        return {"ok": False, "error": f"dedup lookup failed: {dedup['error']}"}
+    if dedup["status"] == "found":
         # 查重命中：不新建条目，只补挂缺失的 PDF 附件
+        existing = dedup["item_key"]
         pdf_added = False
         if pdf_path and os.path.exists(pdf_path) and valid_pdf_file(pdf_path):
-            if not _item_has_pdf(api_key, user_id, existing):
+            has_pdf = _item_has_pdf(api_key, user_id, existing)
+            if has_pdf is None:
+                # children 查询失败：不上传新附件，延迟到重试
+                return {"ok": False, "error": "dedup children lookup failed"}
+            if not has_pdf:
                 ok_up, detail = _zotero_upload_pdf(api_key, user_id, existing, pdf_path)
                 if not ok_up:
                     return {"ok": False, "error": f"attach pdf to existing failed: {detail}"}

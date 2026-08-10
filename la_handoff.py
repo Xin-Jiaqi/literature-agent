@@ -242,8 +242,8 @@ def render_handoff(state):
         "",
         "| 队列 | 内容 | A 是否自动 |",
         "|---|---|---|",
-        "| live_must | 今天新发现的 MUST | 立即执行 A |",
-        "| historical_recovery | 历史回放找回的重要论文 | 空闲时后台补 A，不计入今日 MUST |",
+        "| live_must | 今天新发现的 MUST | 立即进入 A 队列（由 executor 完成 A） |",
+        "| historical_recovery | 历史回放找回的重要论文 | 空闲时进入 A 队列，不计入今日 MUST |",
         "| weekly | 本周候选 | 不自动执行 A |",
         "",
         "## A worker 协议",
@@ -317,6 +317,11 @@ def render_handoff(state):
 def run_handoff(conn=None):
     from la_db2 import connect
 
+    # 测试隔离护栏：测试环境（LITAGENT_DB 指向临时库）必须显式设置
+    # LITAGENT_HANDOFF_DIR，否则会覆盖真实 docs/HANDOFF.md 与 state/PROJECT_STATE.json。
+    if os.environ.get("LITAGENT_DB") and not os.environ.get("LITAGENT_HANDOFF_DIR"):
+        raise RuntimeError(
+            "run_handoff: 测试环境必须设置 LITAGENT_HANDOFF_DIR，防止覆盖真实 HANDOFF/STATE")
     own = conn is None
     conn = conn or connect()
     state = collect_state(conn)

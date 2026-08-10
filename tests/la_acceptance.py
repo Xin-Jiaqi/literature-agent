@@ -513,7 +513,7 @@ def failure_tests():
             text = open(ov["path"], encoding="utf-8").read()
             assert "Historical Replay Paper" in text
             i_live = text.find("## 今日新文献")
-            i_hist = text.find("## 历史补回")
+            i_hist = text.find("## 今日历史补回")
             assert i_live < i_hist < text.find("Historical Replay Paper")
         case("historical_not_in_today_live", t12)
 
