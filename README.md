@@ -93,7 +93,7 @@ Literatures/
 ├── 1_处理中/   # read
 ├── 2-可调用/   # 用户确认后的成熟 C
 ├── 00-已阅/    # ignore / 已处理
-└── AI system/  # A Skill 等
+└── AI system/  # 个人 Skill 原文（仓库公开版：docs/skills/）
 ```
 
 ## A / B / C / D
@@ -104,6 +104,8 @@ Literatures/
 - **D**：发表 / 汇报 / 社交媒体转化
 
 注意：`MUST / WEEKLY / RADAR / DROP`（推荐轴）与 `A / B / C / D`（阅读轴）是**两条独立维度**。
+
+A/B/C/D 四个 Skill 与《AI 辅助重要文献阅读系统总说明》已随仓库公开：`docs/skills/`（个人基线，可按研究方向自行调整）。
 
 ## Zotero setup
 
@@ -163,7 +165,7 @@ python3 literature_agent.py doctor       # 来源健康
 
 - 主要针对 macOS（automation 使用 launchd）
 - personal research profile 未公开（需要按自己的研究方向配置）
-- A Skill 需要用户自行准备 / 配置
+- A/B/C/D Skill 随仓库提供（`docs/skills/`），但需按个人研究方向与领域自行调整
 - 部分 publisher RSS 可能 blocked（Cloudflare / feed 不可用）
 - Google Scholar、微信公众号尚未自动接入
 - 当前重点是个人科研工作流，不保证开箱即适配所有领域
@@ -174,6 +176,7 @@ python3 literature_agent.py doctor       # 来源健康
 - `docs/ARCHITECTURE.md` — 静态系统架构
 - `docs/HANDOFF.md` — 新 Codex session 第一入口（`handoff` 自动刷新）
 - `docs/RELEASE_NOTES_v0.1.0.md` — v0.1.0 发布说明
+- `docs/skills/` — A/B/C/D 阅读 Skill 与系统总说明（个人基线）
 - `docs/CHANGELOG.md` — 变更记录
 - `state/PROJECT_STATE.json` — 机器状态快照
 - `reports/audit/` — 审计报告；`reports/release/` — 发布扫描记录

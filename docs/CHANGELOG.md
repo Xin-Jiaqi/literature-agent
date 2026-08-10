@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## 2026-08-10 — 公开 A/B/C/D Skill 到公共仓库（v0.1.0 发布后）
+
+- 新增 `docs/skills/`：公开 A/B/C/D 四个阅读 Skill 与《AI 辅助重要文献阅读系统总说明》原稿（与 Obsidian vault `Literatures/AI system/` 对应文件逐字同步）。
+- `docs/skills/README.md`：说明各 Skill 的阶段、作用、定位与 literature-agent 的关系。
+- README：A/B/C/D 节、Obsidian 目录树注释、限制与文档地图同步指向 `docs/skills/`。
+- `docs/articles/literature-agent-v0.1.0.md`：发布信息补充 Skill 公开路径；发布提交 SHA 修正为 tag `v0.1.0` 实际指向的 commit `30063c6`。
+- `xhs-kami-template.md`（小红书排版模板）不属于 A–D 流程，未公开。
+
 ## 2026-08-10 — Personal Alpha 修正（文档与真实行为对齐）
 
 - 统一投递语义：自动完成 A 正式发布到 `每日文献/_文献包/<work_id>/`（A.md + paper.pdf），不投递 `0_待处理`；`0_待处理` 只表示用户明确“稍后”。

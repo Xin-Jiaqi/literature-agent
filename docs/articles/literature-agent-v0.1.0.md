@@ -95,7 +95,7 @@ A 正文本身由 **Codex 或 ChatGPT executor** 完成。
 
     python3 literature_agent.py a-job --kind all
 
-只负责生成可由 Codex 消费的任务清单。Codex 读取实际 PDF 和 A Skill，逐篇生成完整 A，再通过 `a-complete` 校验并发布。
+只负责生成可由 Codex 消费的任务清单。Codex 读取实际 PDF 和 A Skill，逐篇生成完整 A，再通过 `a-complete` 校验并发布。A/B/C/D 四个 Skill 与《AI 辅助重要文献阅读系统总说明》也随仓库公开（`docs/skills/`），本文描述的是当前个人基线。
 
 A 的目标也很有限：快速回答“这篇讲什么、旧问题是什么、核心证据在哪里、对我的研究有什么用、下一步读哪里”。它不承担完整精读。
 
@@ -522,7 +522,8 @@ Zotero：
 - License：MIT（Copyright 2026 Xin Jiaqi）
 - 发布日期：2026-08-10
 - 仓库可见性：Public
-- 对应发布提交：`51bead386ab8a6aaadbdf107dbafcc45db3872f5`
+- 对应发布提交：`30063c64a95a76ce0a53af56f2f8222ffb57959f`（`v0.1.0` tag 指向该 commit）
+- A/B/C/D Skill 与阅读系统总说明：随仓库公开于 `docs/skills/`
 
 当前版本优先解决个人科研工作流：文献发现、筛选、A 建档入口、Obsidian 每日总览、Zotero 归档和 ChatGPT/Codex 交接。当前并不追求做成通用 SaaS 或跨领域成品。
 
