@@ -3,19 +3,19 @@
 literature-agent（personal alpha）— 统一文献收集/筛选/全文处理/每日总览流水线。
 
 命令：
-  python3 literature_agent.py bootstrap          # 把测试阶段历史迁移为“已消费”，建立 literature.db
+  python3 literature_agent.py bootstrap          # 把测试阶段历史迁移为“已消费”，建立 data/literature.db
   python3 literature_agent.py collect            # 抓取全部官方来源，写入 works/work_sources
   python3 literature_agent.py screen             # 对 queued work 自动分级（MUST/WEEKLY/RADAR/DROP）
   python3 literature_agent.py screen --grade <work_id> <PRIORITY> --reason "..."
   python3 literature_agent.py process            # 处理本轮新 MUST：PDF + SI 检查 + A 建档目录
-  python3 literature_agent.py digest             # 生成 daily/YYYY-MM-DD.md
+  python3 literature_agent.py digest             # 生成 reports/daily/YYYY-MM-DD.md
   python3 literature_agent.py daily              # collect -> screen -> process -> digest（带容错）
   python3 literature_agent.py selftest           # 六项自检
   python3 literature_agent.py stats              # 数据库统计
   python3 literature_agent.py dump-queue         # 打印待筛选队列（便于人工复核）
 
-数据：literature.db（works / sources / work_sources / screenings / processing_runs / processing / digests）
-日志：logs/run-<run_id>.jsonl
+数据：data/literature.db（works / sources / work_sources / screenings / processing_runs / processing / digests）
+日志：runtime/logs/run-<run_id>.jsonl
 """
 import argparse
 import difflib
@@ -25,11 +25,11 @@ import json
 import os
 import re
 import sqlite3
-import ssl
 import sys
 import time
 import urllib.request
 import xml.etree.ElementTree as ET
+from la_v2common import ssl_ctx
 from collections import Counter
 from datetime import date, datetime
 
@@ -100,10 +100,9 @@ NS = {"rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
 # ================= 基础工具 =================
 
 def fetch(url, timeout=60, binary=False):
-    ctx = ssl._create_unverified_context()
     req = urllib.request.Request(url, headers={"User-Agent": UA,
                                                "Accept": "application/xml,text/xml,text/html,*/*;q=0.8"})
-    with urllib.request.urlopen(req, timeout=timeout, context=ctx) as r:
+    with urllib.request.urlopen(req, timeout=timeout, context=ssl_ctx()) as r:
         return r.read()
 
 
@@ -1679,6 +1678,16 @@ def selftest():
     assert conn.execute("SELECT COUNT(*) FROM works WHERE work_id=?", (wid,)).fetchone()[0] == 1
     conn.commit()
     ok.append("scenario2: v1->v2 同一 work，实质变化才重入队 PASS")
+
+    # SSL 安全检查：主 fetch 默认使用 verified SSL context（无未验证网络栈）
+    import inspect
+    import ssl as _ssl
+    import la_v2common as _v2c
+    assert "_create_unverified_context" not in inspect.getsource(fetch), "主 fetch 不得使用未验证 context"
+    _ctx = _v2c.ssl_ctx()
+    assert _ctx.verify_mode == _ssl.CERT_REQUIRED, "默认 SSL context 必须验证证书"
+    assert _ctx.check_hostname is True, "默认 SSL context 必须校验 hostname"
+    ok.append("scenario_ssl: 主 fetch 使用 verified SSL context PASS")
 
     # 场景 3：某 source 网络失败，daily 继续（V2 API 源同样模拟网络失败）
     def bad_fetch(url, *a, **k):

@@ -13,7 +13,7 @@
    "enabled": true,
    "supports_backfill": true,
    "needs_abstract_enrichment": false,
-   "endpoint": "http://export.arxiv.org/api/query",
+   "endpoint": "https://export.arxiv.org/api/query",
    "params": {
     "cats": [
      "cond-mat.mtrl-sci",

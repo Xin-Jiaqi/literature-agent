@@ -1,10 +1,10 @@
 # literature-agent
 
-个人科研文献雷达：后台自动完成 发现 → 去重 → 分级 → 全文获取 → A 建档，每天只把值得看的论文送给你。
+个人科研文献雷达：后台自动完成 发现 → 去重 → 分级 → 全文获取 → A 队列准备 → 每日总览；A 正文由 Codex/ChatGPT executor 完成。每天只把值得看的论文送给你。
 
 ## 这是什么
 
-- 后台自动跑：collect → dedup → screen → MUST PDF/SI → A worker → A 正式完成 → 每日总览
+- 后台自动跑：collect → dedup → screen → MUST PDF/SI → A queue/job 准备 → 每日总览（A 正文由 Codex/ChatGPT executor 完成）
 - 用户唯一日常前台：Obsidian `Literatures/每日文献/YYYY-MM-DD 文献总览.md`
 - 自动完成的 A 正式存放 `每日文献/_文献包/<work_id>/`（A.md + paper.pdf），不再堆进 `0_待处理`
 
