@@ -140,6 +140,14 @@ def _record_vault_artifact(conn, work_id, path, detail):
         )
 
 
+def package_work_dir(work_id):
+    """_文献包 子目录名：work_id 中的冒号替换为 -。
+
+    macOS Finder 会把冒号显示成斜杠，Obsidian wikilink 也无法解析含冒号路径，
+    因此目录名统一用安全形式（DB 中 work_id 保持原样）。
+    """
+    return str(work_id).replace(":", "-")
+
 def publish_completed_to_package(conn, work_id, source_path=None):
     """把已验证 A 原子发布到 每日文献/_文献包/<work_id>/A.md（含 PDF/SI 副本）。
 
@@ -161,7 +169,7 @@ def publish_completed_to_package(conn, work_id, source_path=None):
     doc = a_document_status(candidate)
     if doc["status"] != "completed":
         raise ValueError("A document is not complete: " + doc["reason"])
-    target_dir = os.path.join(PACKAGE_DIR, work["work_id"])
+    target_dir = os.path.join(PACKAGE_DIR, package_work_dir(work["work_id"]))
     os.makedirs(target_dir, exist_ok=True)
     target = os.path.join(target_dir, "A.md")
     if os.path.exists(target):
@@ -237,7 +245,7 @@ def migrate_inbox_to_package(conn, work_ids=None):
         if note["stage"] != "inbox":
             skipped.append((work["work_id"], "already in " + note["stage"]))
             continue
-        target_dir = os.path.join(PACKAGE_DIR, work["work_id"])
+        target_dir = os.path.join(PACKAGE_DIR, package_work_dir(work["work_id"]))
         os.makedirs(target_dir, exist_ok=True)
         target = os.path.join(target_dir, "A.md")
         if os.path.exists(target):

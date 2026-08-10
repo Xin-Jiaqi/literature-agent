@@ -178,11 +178,66 @@ def _zotero_ensure_collection(api_key, user_id, name):
     return None
 
 
-def _zotero_upload_pdf(api_key, user_id, parent_key, pdf_path):
-    """官方三步上传 PDF 附件：建附件条目 → 授权 → 传文件 → 注册。返回 (ok, detail)。
+def _webdav_cfg():
+    """可选 WebDAV 文件同步配置（config/local.json 的 zotero.webdav）。
 
-    v3 不再接受在条目创建时内嵌 base64 content；必须先建 attachment 条目，
-    再走 /items/<key>/file 的授权-上传-注册流程。
+    用户 Zotero 若配置了 WebDAV（如坚果云），API 上传到 zotero.org 官方存储的
+    文件永远不会被本地客户端下载；配置本段后附件改为 PUT 到 WebDAV，
+    并 PATCH API 的 md5/mtime 让客户端认为文件已存在。留空则走官方上传。
+    """
+    return (_zotero_cfg().get("webdav") or {})
+
+
+def _webdav_upload(api_key, user_id, att_key, pdf_path):
+    """把附件 PUT 到 Zotero WebDAV 目录（{url}/zotero/{user_id}/{att_key}），
+    再更新 API 的 md5/mtime。返回 (ok, detail)。
+    """
+    import base64
+    import hashlib
+    import urllib.request
+    cfg = _webdav_cfg()
+    base = (cfg.get("url") or "").rstrip("/")
+    username = cfg.get("username") or ""
+    password = cfg.get("password") or ""
+    if not (base and username and password):
+        return None, "webdav 未配置"
+    with open(pdf_path, "rb") as f:
+        data = f.read()
+    md5 = hashlib.md5(data).hexdigest()
+    mtime = int(os.path.getmtime(pdf_path) * 1000)
+    target = f"{base}/zotero/{user_id}/{att_key}"
+    req = urllib.request.Request(target, data=data, method="PUT")
+    req.add_header("Authorization", "Basic " + base64.b64encode(
+        f"{username}:{password}".encode("utf-8")).decode("ascii"))
+    req.add_header("Content-Type", "application/octet-stream")
+    try:
+        with urllib.request.urlopen(req, timeout=300) as resp:
+            if resp.status not in (200, 201, 204):
+                return False, f"webdav PUT http {resp.status}"
+    except Exception as e:
+        return False, f"webdav PUT {e}"
+    try:
+        st, raw = _zotero_http("GET", f"https://api.zotero.org/users/{user_id}/items/{att_key}",
+                               api_key=api_key)
+        if st != 200:
+            return False, f"webdav register get http {st}"
+        ver = json.loads(raw)["version"]
+        st, raw = _zotero_http("PATCH", f"https://api.zotero.org/users/{user_id}/items/{att_key}",
+                               body={"md5": md5, "mtime": mtime}, api_key=api_key,
+                               headers={"If-Unmodified-Since-Version": str(ver)})
+        if st != 204:
+            return False, f"webdav register md5 http {st}"
+    except Exception as e:
+        return False, f"webdav register {e}"
+    return True, ""
+
+
+def _zotero_upload_pdf(api_key, user_id, parent_key, pdf_path):
+    """上传 PDF 附件。返回 (ok, detail)。
+
+    优先 WebDAV（用户配置了 webdav 段时）；否则走官方三步上传：
+    建附件条目 → 授权 → 传文件 → 注册。
+    v3 不再接受在条目创建时内嵌 base64 content。
     """
     import hashlib
     import urllib.parse
@@ -191,7 +246,7 @@ def _zotero_upload_pdf(api_key, user_id, parent_key, pdf_path):
     md5 = hashlib.md5(pdf).hexdigest()
     fname = os.path.basename(pdf_path)
     mtime = str(int(os.path.getmtime(pdf_path) * 1000))
-    # 1) 建附件条目（不带 content）
+    # 1) 建附件条目（两种上传方式共用；不带 content）
     att = [{"itemType": "attachment", "linkMode": "imported_file",
             "filename": fname, "parentItem": parent_key, "title": fname}]
     status, raw = _zotero_http("POST", f"https://api.zotero.org/users/{user_id}/items",
@@ -220,6 +275,14 @@ def _zotero_upload_pdf(api_key, user_id, parent_key, pdf_path):
                          api_key=api_key)
         except Exception:
             pass
+
+    # 1b) WebDAV 模式：PUT 文件 + PATCH md5/mtime（不占官方存储配额）
+    if _webdav_cfg().get("url"):
+        ok_w, detail_w = _webdav_upload(api_key, user_id, att_key, pdf_path)
+        if not ok_w:
+            _cleanup()
+            return False, f"webdav upload failed: {detail_w}"
+        return True, ""
 
     # 2) 授权上传
     auth_body = urllib.parse.urlencode(

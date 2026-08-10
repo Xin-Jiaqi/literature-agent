@@ -239,7 +239,8 @@ def _render_block(conn, work, prev_user_region=None):
     pdf_path, si_path = _pdf_paths(conn, work["work_id"])
     pdf_link = ""
     if pdf_path:
-        pkg_pdf = os.path.join(overview_dir(), "_文献包", work["work_id"], "paper.pdf")
+        from la_workflow import package_work_dir
+        pkg_pdf = os.path.join(overview_dir(), "_文献包", package_work_dir(work["work_id"]), "paper.pdf")
         handoff_pdf = glob.glob(os.path.join(
             handoff_dir(), "*", _safe_short_title(work["title"]), "paper.pdf"))
         if os.path.exists(pkg_pdf):
@@ -252,7 +253,7 @@ def _render_block(conn, work, prev_user_region=None):
             pdf_link = f"[PDF](file://{pdf_path})"
     si_link = ""
     if si_path:
-        pkg_si = os.path.join(overview_dir(), "_文献包", work["work_id"], "supplement.pdf")
+        pkg_si = os.path.join(overview_dir(), "_文献包", package_work_dir(work["work_id"]), "supplement.pdf")
         if os.path.exists(pkg_si):
             rel = _vault_rel_path(pkg_si)
             si_link = f"[[{rel}]]" if rel else f"[SI](file://{pkg_si})"
@@ -285,9 +286,18 @@ def _render_block(conn, work, prev_user_region=None):
 DECIDED_STATUSES = ("processing", "deferred", "ignored", "callable")
 
 
+def _decided_on_overview(conn, work_id, date):
+    """该论文是否在这份总览（overview_date）上被用户决定。"""
+    return conn.execute(
+        "SELECT 1 FROM overview_syncs WHERE overview_date=? AND work_id=? LIMIT 1",
+        (date, work_id)).fetchone() is not None
+
+
 def render_overview(conn, date, prev_text=None):
     works = _completed_a_works(conn)
     decided = [w for w in works if (w["reading_status"] or "") in DECIDED_STATUSES]
+    # 已处理区只显示“在这份总览上被决定”的，避免每天重复展示已经决定过的论文
+    decided_today = [w for w in decided if _decided_on_overview(conn, w["work_id"], date)]
     pending = [w for w in works if (w["reading_status"] or "") not in DECIDED_STATUSES]
     live = [w for w in pending if not (w["historical_discovery"] or 0)]
     hist = [w for w in pending if (w["historical_discovery"] or 0)]
@@ -302,7 +312,8 @@ def render_overview(conn, date, prev_text=None):
         f"# {date} 文献总览", "",
         f"> 今日新文献：{len(live)}",
         f"> 历史补回：{len(hist)}",
-        f"> 等待决定：{waiting}", "",
+        f"> 等待决定：{waiting}",
+        f"> 已处理：{len(decided_today)}", "",
         "说明：勾选后运行 `sync-overview`（或由 daily 自动同步）即生效；没有任何勾选 = 什么都不做。",
         "", "---", "",
     ]
@@ -325,10 +336,10 @@ def render_overview(conn, date, prev_text=None):
             lines.append("")
         if not items:
             lines.append("（无）\n")
-    if decided:
+    if decided_today:
         lines.append("## 已处理（不在待办区）\n")
         idx = 0
-        for w in decided:
+        for w in decided_today:
             prev = ordered.get(w["work_id"])
             if prev is None and w["work_id"] in prev_blocks:
                 prev = prev_blocks[w["work_id"]]

@@ -189,6 +189,48 @@ def run_all():
             created = [c for c in calls if c[0] == "POST"]
             assert len(created) == 1 and created[0][2] == [{"name": "NewArea"}], created
         print("[PASS] 7. collection 无匹配时只新建叶子名")
+        # ---- 8) WebDAV 模式：PUT 到 WebDAV + PATCH md5/mtime，不走官方三步 ----
+        with mock.patch.object(lz, "_zotero_cfg", return_value={
+                "api_key": "K", "user_id": "1", "auto_sync": True,
+                "webdav": {"url": "https://dav.example.com/dav", "username": "u", "password": "p"}}):
+            calls = []
+            def webdav_handler(method, url, body=None, api_key=None, timeout=60,
+                               content_type="application/json", headers=None):
+                calls.append((method, url, body))
+                if url.endswith("/items") and method == "POST":
+                    return 201, json.dumps({"successful": {"0": {"key": "ATTW", "version": 1}}}).encode()
+                if url.endswith("/items/ATTW") and method == "GET":
+                    return 200, json.dumps({"key": "ATTW", "version": 5, "data": {}}).encode()
+                if url.endswith("/items/ATTW") and method == "PATCH":
+                    return 204, b""
+                if url.endswith("/items") and method == "DELETE":
+                    return 204, b""
+                return 500, b"unexpected"
+            fake_urlopen = mock.MagicMock()
+            fake_urlopen.return_value.__enter__.return_value.status = 201
+            with mock.patch.object(lz, "_zotero_http", side_effect=webdav_handler), \
+                 mock.patch("urllib.request.urlopen", fake_urlopen):
+                ok_w, detail = lz._zotero_upload_pdf("K", "1", "ITEM1", pdf)
+            assert ok_w, detail
+            put = fake_urlopen.call_args
+            req = put[0][0]
+            assert req.full_url == "https://dav.example.com/dav/zotero/1/ATTW", req.full_url
+            assert req.get_method() == "PUT"
+            assert "Basic " in req.get_header("Authorization")
+            patch = next(c for c in calls if c[0] == "PATCH")
+            body = patch[2]
+            assert body["md5"] and body["mtime"] > 0, body
+            assert not [c for c in calls if "/items/ATTW/file" in c[1]], "WebDAV 模式不得走官方三步上传"
+        print("[PASS] 8. WebDAV 模式 PUT + md5/mtime 注册")
+
+        # ---- 9) 未配置 WebDAV 时仍走官方三步上传（回归） ----
+        with mock.patch.object(lz, "_zotero_cfg", return_value={"api_key": "K", "user_id": "1", "auto_sync": True}):
+            handler2, calls2 = upload_flow()
+            with mock.patch.object(lz, "_zotero_http", side_effect=handler2):
+                r = lz.zotero_save_work(conn, "t:1")
+            assert r["ok"], r
+            assert any("s3.example" in c[1] for c in calls2), "未配置 WebDAV 必须走官方三步上传"
+        print("[PASS] 9. 未配置 WebDAV 时官方上传回归")
     print("zotero auto test: ALL PASS")
     return ok
 
