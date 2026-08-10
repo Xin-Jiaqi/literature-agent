@@ -2,9 +2,13 @@
 
 > literature-agent：把持续增长的论文流压缩成每天少量真正值得看的文献，再接入已有的 A/B/C/D 阅读系统。
 
-<!-- 【发布状态】项目已以 v0.1.0 公开发布：Public 仓库 + MIT License + GitHub Release。本文与 docs/RELEASE_NOTES_v0.1.0.md 对应同一发布快照。 -->
+<!-- 【发布状态】项目已以 v0.1.0 公开发布：Public 仓库 + MIT License + GitHub Release。v0.1.0 tag 固定在首个公开快照；发布后 main 仅补充公开文档/Skill，不改变 v0.1.0 的运行逻辑。 -->
 
-<!-- 【建议插图 1】Obsidian「每日文献总览」完整截图。重点展示：今日新文献、之前未决定、我的决定、附加标记、A 建档 transclusion。 -->
+<!-- 【图 1｜需手动截图：Obsidian 每日文献总览】
+建议文件：docs/assets/v0.1.0/01-obsidian-daily-overview.png
+截图内容：一页完整的“YYYY-MM-DD 文献总览”，至少同时出现“今日新文献 / 之前未决定 / 我的决定 / 附加标记 / A 建档嵌入”。
+建议裁切：保留 Obsidian 左侧文件树的一小部分 + 正文主体；隐藏 iCloud/用户真实路径。
+发布用途：文章开头第一张图，让读者先看到最终使用界面。 -->
 
 我过去的文献阅读方式很常见：Google Scholar 邮件、期刊更新、公众号、别人推荐，看到有价值的论文后放进 Zotero，再挑重要的交给 ChatGPT 做快速建档。真正进入精读以后，我会在 Obsidian 里继续问图、公式、概念和与自己课题的关系，最后整理成可调用笔记。
 
@@ -59,7 +63,11 @@
 
 这两个维度分开以后，逻辑清楚很多。`MUST` 表示机器对“注意力优先级”的判断；`A` 表示论文进入阅读流程后的第一阶段。过去容易混在一起的 S/A/B/C 分级，也因此被彻底拆开。
 
-<!-- 【建议插图 2】根据上面的主流程重绘一张横向流程图。尽量只保留 8–10 个节点，突出 Python 后台、Codex/ChatGPT、Obsidian、Zotero 四个角色。 -->
+<!-- 【图 2｜建议制作：主流程图】
+建议文件：docs/assets/v0.1.0/02-workflow-overview.png
+内容：External sources → Python backend → Codex/ChatGPT → Obsidian daily overview → Zotero / B→C→D。
+建议视觉：横向 4 个角色分区，8–10 个节点，不要把所有模块名都画进去。
+这张图后续可以由我直接根据最终文章生成，也可以从 GitHub 流程图导出。 -->
 
 ## 发现层：先把“可能重要的文献”收进来
 
@@ -100,6 +108,14 @@ A 正文本身由 **Codex 或 ChatGPT executor** 完成。
 A 的目标也很有限：快速回答“这篇讲什么、旧问题是什么、核心证据在哪里、对我的研究有什么用、下一步读哪里”。它不承担完整精读。
 
 一个很重要的保护规则是：**拿不到 PDF 就不能伪造 A。** HTML challenge、失效链接或不完整文件都会进入 blocked 状态。SI 没拿到也必须明确标注。
+
+<!-- 【图 3｜需手动截图：Codex A job / A 完成过程】
+建议文件：docs/assets/v0.1.0/03-codex-a-worker.png
+二选一：
+A. Terminal 中 `a-job --kind all` + Codex 消费一篇 MUST 后完成 A；
+B. `_文献包/<work_id>/` 中 A.md + paper.pdf + supplement.pdf 的实际文件结构。
+隐私：裁掉用户名、绝对路径、API key、远程机器信息。
+发布用途：说明“Python 准备任务，模型负责读正文”的边界。 -->
 
 ## Obsidian 前台：每天只打开一页
 
@@ -155,6 +171,13 @@ C 成熟并由用户确认后，才进入：
 
 这也修正了我早期工作流里的一个问题：原来的 `0_待处理` 同时承担“所有自动 A 的堆放区”和“我明确想稍后处理的论文”，时间久了又会变成新的垃圾堆。现在 `_文献包` 承担机器后台存储，`0_待处理` 只表示一个清晰的人类决定：**稍后再看。**
 
+<!-- 【图 4｜需手动截图：Obsidian 文件阶段】
+建议文件：docs/assets/v0.1.0/04-obsidian-stage-folders.png
+截图内容：左侧文件树同时显示 `每日文献/_文献包`、`0_待处理`、`1_处理中`、`00-已阅`、`2-可调用`。
+最好让右侧打开一篇已经进入 `1_处理中` 的 A/B 笔记。
+隐私：隐藏 vault 上层真实路径。
+用途：解释“机器存储”和“用户阅读阶段”的分工。 -->
+
 ## 批注同步：文件移动后，前台必须立即正确
 
 总览里的勾选每 60 秒由一个本地 LaunchAgent 同步一次。
@@ -197,6 +220,15 @@ Zotero 这一段后来改得比较多，主要解决了四类问题：
 **fail closed。** 如果查重 API 返回 500、网络异常或 JSON 解析失败，系统会直接停止这次创建，把条目留在本地队列等待重试。查询失败不会被解释成“Zotero 里没有这篇论文”。children 查询失败时也不会盲目再挂一个 PDF。
 
 这类行为看起来保守，但长期运行的自动化系统里，避免产生难以清理的重复数据，比某一次同步快几秒更重要。
+
+<!-- 【图 5｜需手动截图：Zotero 自动归档结果】
+建议文件：docs/assets/v0.1.0/05-zotero-item.png
+截图内容：一个由 literature-agent 保存的真实条目，能看到：
+1）标题/作者/期刊或 DOI；
+2）所在 collection；
+3）PDF attachment。
+不要截：API key、WebDAV 用户名/密码、账号邮箱、私人注释。
+用途：证明“存 Zotero”最终落到真实资料库。 -->
 
 ## 自动运行：多时间点重试和自动补课
 
@@ -502,7 +534,7 @@ Zotero：
 11. 普通 read/later/ignore 不自动修改长期 research profile。
 12. 本机路径、API key、个人研究画像、数据库和 PDF 不进入 GitHub。
 
-公开仓库还需要额外注意一件事：`.gitignore` 只能保护当前和未来没有被提交的文件。如果某个 secret 曾经进入 Git 历史，即使后来删除，公开仓库以后仍然可能从历史 commit 找回。因此从 Private 切换到 Public 前，应该对**完整 Git 历史**再做一次 secret scan。
+这里还有一个容易忽略的点：`.gitignore` 只能保护当前和未来没有被提交的文件。如果 secret 曾进入 Git 历史，即使后来删除，也可能从历史 commit 找回。因此 v0.1.0 公开前额外做了**完整 Git 历史 secret scan**。
 
 ---
 
@@ -522,8 +554,9 @@ Zotero：
 - License：MIT（Copyright 2026 Xin Jiaqi）
 - 发布日期：2026-08-10
 - 仓库可见性：Public
-- 对应发布提交：`30063c64a95a76ce0a53af56f2f8222ffb57959f`（`v0.1.0` tag 指向该 commit）
-- A/B/C/D Skill 与阅读系统总说明：随仓库公开于 `docs/skills/`
+- `v0.1.0` tag：`30063c64a95a76ce0a53af56f2f8222ffb57959f`
+- 当前 `main` 在 tag 之后仅增加公开文档/Skill，运行代码未改变
+- A/B/C/D Skill 与阅读系统总说明：位于 `docs/skills/`
 
 当前版本优先解决个人科研工作流：文献发现、筛选、A 建档入口、Obsidian 每日总览、Zotero 归档和 ChatGPT/Codex 交接。当前并不追求做成通用 SaaS 或跨领域成品。
 
@@ -538,7 +571,15 @@ Zotero：
 7. 打 `v0.1.0` release/tag，固定本文对应的首个公开快照；
 8. 本文发布时保留 GitHub 链接。
 
-<!-- 【建议插图 3】GitHub 仓库首页截图。发布后应展示 Public 状态、README、LICENSE 与 v0.1.0 Release。 -->
+<!-- 【图 6｜需手动截图：GitHub v0.1.0】
+建议文件：docs/assets/v0.1.0/06-github-release.png
+截图内容：仓库首页或 Releases 页面，能够看见 Public、MIT、v0.1.0。
+如果首页无法同时展示三项，可以优先截右侧 Releases + About/License 区域。
+用途：文章结尾作为项目公开状态展示。 -->
+
+---
+
+这里刻意不移动已经发布的 `v0.1.0` tag。Release tag 应该保持一个可复现快照；文章润色、截图和后续文档补充继续进入 `main`。
 
 ---
 
@@ -568,6 +609,19 @@ Zotero：
 我更希望这套系统最后形成的是一套稳定的个人科研基础设施：后台持续工作，前台保持很短，重要论文能快速进入深读，读完以后又能自然沉淀成以后真正能调用的知识。
 
 ---
+
+<!-- 【截图协作清单｜发布前保留，正式粘贴到知乎/公众号前删除】
+最终建议 4–6 张图：
+1. Obsidian 每日总览（必须）
+2. 主流程图（必须）
+3. Codex A worker 或 _文献包（可选其一）
+4. Obsidian 阶段目录（推荐）
+5. Zotero 自动归档结果（必须）
+6. GitHub v0.1.0（推荐）
+
+统一放入：docs/assets/v0.1.0/
+用户提供截图后，再将这些 HTML 注释替换为正常 Markdown 图片引用并补统一图注。
+】 -->
 
 # 参考资料与背景工具官方文档
 
