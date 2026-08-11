@@ -12,7 +12,7 @@ import os
 import re
 import shutil
 
-from la_v2common import now_iso
+from la_v2common import now_iso, read_vault_file
 from literature_config import DAILY_OVERVIEW_ROOT as _CFG_OVERVIEW_DIR, DATA_ROOT as _CFG_DATA_ROOT
 
 BASE = os.path.dirname(os.path.abspath(__file__))
@@ -714,8 +714,13 @@ def run_sync_overview(conn, date, refresh=True):
     if not os.path.exists(path):
         return {"date": date, "path": "", "error": "overview not found", "applied": 0,
                 "conflicts": 0, "handoffs": 0, "direction_feedback": 0}
-    with open(path, encoding="utf-8") as f:
-        blocks = parse_overview_text(f.read())
+    text = read_vault_file(path)
+    if text is None:
+        return {"date": date, "path": path,
+                "error": "overview unreadable (iCloud placeholder)", "applied": 0,
+                "conflicts": 0, "conflict_works": [], "handoffs": [],
+                "direction_feedback": 0, "skipped": 0, "applied_works": []}
+    blocks = parse_overview_text(text)
     summary = {"date": date, "path": path, "applied": 0, "conflicts": 0, "conflict_works": [],
                "handoffs": [], "direction_feedback": 0, "skipped": 0, "applied_works": []}
     for work_id, block in blocks.items():

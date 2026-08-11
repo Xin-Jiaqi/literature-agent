@@ -532,6 +532,26 @@ def failure_tests():
             assert n1 == n2 and fb1 == fb2, (n1, n2, fb1, fb2)
         case("chatgpt_handoff_idempotent", t13)
 
+        # 14) 已发布 A 但 vault 笔记不可读（iCloud dataless 占位）：reconcile 不崩溃、不覆盖
+        def t14():
+            import stat as _stat
+            _insert_work(conn, "10.5000/place01", "Placeholder Note Paper")
+            _complete_a(conn, "10.5000/place01", "Placeholder Note Paper",
+                        env["LITAGENT_PAPERS_DIR"], lwf.PACKAGE_DIR)
+            pkg_a = os.path.join(lwf.PACKAGE_DIR, "10.5000/place01", "A.md")
+            assert os.path.exists(pkg_a)
+            os.chmod(pkg_a, 0)  # 模拟不可读（与 dataless 占位同类的 OSError 路径）
+            try:
+                w = conn.execute("SELECT * FROM works WHERE work_id='10.5000/place01'").fetchone()
+                note = lwf._vault_note_for_work(w)
+                assert note and note["stage"] == "package", note
+                r = lwf.publish_completed_to_package(conn, "10.5000/place01")
+                assert r["existing"] is True and r["published"] is False, r
+                assert os.path.exists(pkg_a)
+            finally:
+                os.chmod(pkg_a, 0o644)
+        case("unreadable_package_note_no_crash", t14)
+
     finally:
         restore()
         shutil.rmtree(tmp, ignore_errors=True)

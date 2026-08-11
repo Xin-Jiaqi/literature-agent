@@ -5,6 +5,7 @@ import json
 import os
 import re
 import ssl
+import subprocess
 import sys
 import time
 import urllib.parse
@@ -133,3 +134,31 @@ def today_iso():
 
 def compact(s, n=400):
     return clean_title(s)[:n]
+
+
+def materialize_vault_file(path):
+    """macOS iCloud：请求下载 dataless 占位文件；失败静默，不阻塞流程。"""
+    if sys.platform != "darwin":
+        return
+    try:
+        subprocess.run(["brctl", "download", path], capture_output=True, timeout=30)
+    except Exception:
+        pass
+
+
+def read_vault_file(path):
+    """读取 vault 文本文件；dataless（iCloud 未下载）时先 brctl 拉取再重试一次。
+
+    返回文件文本；仍失败返回 None，调用方按“文件暂不可读”降级处理，不抛异常。
+    """
+    try:
+        with open(path, encoding="utf-8") as f:
+            return f.read()
+    except OSError:
+        pass
+    materialize_vault_file(path)
+    try:
+        with open(path, encoding="utf-8") as f:
+            return f.read()
+    except OSError:
+        return None

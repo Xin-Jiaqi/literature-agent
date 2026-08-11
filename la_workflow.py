@@ -15,7 +15,7 @@ import re
 import shutil
 
 from la_dedup import normalize_title_key
-from la_v2common import now_iso
+from la_v2common import now_iso, read_vault_file
 from literature_config import (VAULT_ROOT as _CFG_VAULT_ROOT, A_SKILL_PATH as _CFG_A_SKILL,
                                PAPERS_ROOT as _CFG_PAPERS_ROOT, QUEUES_ROOT as _CFG_QUEUES_ROOT,
                                PROJECT_ROOT as _CFG_PROJECT_ROOT)
@@ -93,11 +93,7 @@ def _safe_filename(title):
 
 
 def _note_title(path):
-    try:
-        with open(path, encoding="utf-8") as f:
-            head = f.read(1600)
-    except OSError:
-        return ""
+    head = (read_vault_file(path) or "")[:1600]
     patterns = (
         r"^#\s*文献快速建档[：:]\s*(.+)$",
         r"^-\s*标题[：:]\s*(.+)$",
@@ -116,11 +112,23 @@ def _vault_note_for_work(work):
     for stage, directory in VAULT_STAGES.items():
         pattern = os.path.join(directory, "**", "*.md") if stage == "package" else os.path.join(directory, "*.md")
         for path in glob.glob(pattern, recursive=(stage == "package")):
+            if stage == "package" and _is_package_note_for_work(path, work["work_id"]):
+                return {"path": path, "stage": stage}
             if normalize_title_key(_note_title(path)) == title_key:
                 return {"path": path, "stage": stage}
             if normalize_title_key(os.path.splitext(os.path.basename(path))[0]) == title_key:
                 return {"path": path, "stage": stage}
     return None
+
+
+def _is_package_note_for_work(path, work_id):
+    """_文献包/<安全目录名>/A.md 且目录名匹配该 work（兼容旧冒号目录名）。"""
+    if os.path.basename(path) != "A.md":
+        return False
+    parent = os.path.normpath(os.path.dirname(path))
+    expected = os.path.normpath(os.path.join(PACKAGE_DIR, package_work_dir(work_id)))
+    legacy = os.path.normpath(os.path.join(PACKAGE_DIR, work_id))
+    return parent in (expected, legacy)
 
 
 def _record_vault_artifact(conn, work_id, path, detail):
@@ -173,7 +181,9 @@ def publish_completed_to_package(conn, work_id, source_path=None):
     os.makedirs(target_dir, exist_ok=True)
     target = os.path.join(target_dir, "A.md")
     if os.path.exists(target):
-        raise FileExistsError("vault target exists; refusing to overwrite: " + target)
+        _record_vault_artifact(conn, work_id, target,
+                               "existing vault note (target exists; not overwritten)")
+        return {"path": target, "stage": "package", "published": False, "existing": True}
     tmp = target + f".tmp-{os.getpid()}"
     try:
         shutil.copyfile(candidate, tmp)
