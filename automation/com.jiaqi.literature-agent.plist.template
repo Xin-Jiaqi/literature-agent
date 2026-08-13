@@ -38,9 +38,9 @@
         </dict>
     </array>
     <key>StandardOutPath</key>
-    <string>__BASE__/runtime/logs/launchd.out.log</string>
+    <string>__LOG_DIR__/launchd.out.log</string>
     <key>StandardErrorPath</key>
-    <string>__BASE__/runtime/logs/launchd.err.log</string>
+    <string>__LOG_DIR__/launchd.err.log</string>
     <key>EnvironmentVariables</key>
     <dict>
         <key>PYTHONUNBUFFERED</key>

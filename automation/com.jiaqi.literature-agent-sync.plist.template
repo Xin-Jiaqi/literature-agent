@@ -14,9 +14,9 @@
     <key>StartInterval</key>
     <integer>60</integer>
     <key>StandardOutPath</key>
-    <string>__BASE__/runtime/logs/sync.launchd.out.log</string>
+    <string>__LOG_DIR__/sync.launchd.out.log</string>
     <key>StandardErrorPath</key>
-    <string>__BASE__/runtime/logs/sync.launchd.err.log</string>
+    <string>__LOG_DIR__/sync.launchd.err.log</string>
     <key>EnvironmentVariables</key>
     <dict>
         <key>PYTHONUNBUFFERED</key>
