@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import re
+import secrets
 import sqlite3
 import uuid
 from datetime import date, datetime, timezone
@@ -144,6 +145,47 @@ CREATE TABLE IF NOT EXISTS usage_events (
 CREATE INDEX IF NOT EXISTS idx_usage_owner_created
   ON usage_events(owner_user_id, created_at);
 
+CREATE TABLE IF NOT EXISTS product_invites (
+  invite_id TEXT PRIMARY KEY,
+  email TEXT,
+  code_hash TEXT NOT NULL UNIQUE,
+  max_uses INTEGER NOT NULL DEFAULT 1 CHECK (max_uses BETWEEN 1 AND 100),
+  used_count INTEGER NOT NULL DEFAULT 0 CHECK (used_count >= 0),
+  expires_at TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  disabled_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS product_credentials (
+  owner_user_id TEXT PRIMARY KEY REFERENCES product_users(user_id) ON DELETE CASCADE,
+  password_hash TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS product_sessions (
+  session_id TEXT PRIMARY KEY,
+  owner_user_id TEXT NOT NULL REFERENCES product_users(user_id) ON DELETE CASCADE,
+  token_hash TEXT NOT NULL UNIQUE,
+  csrf_hash TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  last_seen_at TEXT NOT NULL,
+  revoked_at TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_sessions_token_active
+  ON product_sessions(token_hash, expires_at) WHERE revoked_at IS NULL;
+
+CREATE TABLE IF NOT EXISTS auth_attempts (
+  attempt_id TEXT PRIMARY KEY,
+  email TEXT NOT NULL,
+  remote_addr TEXT NOT NULL DEFAULT '',
+  ok INTEGER NOT NULL DEFAULT 0,
+  attempted_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_auth_attempts_email_time
+  ON auth_attempts(email, attempted_at);
+
 -- Additive guards also protect databases that created an earlier pilot draft
 -- before composite foreign keys were introduced.
 CREATE UNIQUE INDEX IF NOT EXISTS idx_projects_id_owner
@@ -237,6 +279,10 @@ def now_iso():
 
 def _new_id(prefix):
     return f"{prefix}_{uuid.uuid4().hex}"
+
+
+def new_secret(bytes_count=32):
+    return secrets.token_urlsafe(bytes_count)
 
 
 def _clean_id(value, field):

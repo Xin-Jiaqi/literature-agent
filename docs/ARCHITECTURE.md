@@ -52,9 +52,12 @@ literature-agent/
 | la_product_db | 校内试点多用户数据边界：用户 / 项目 / 画像 / 推荐 / 私有资产 / 用量 |
 | la_project_screen | 使用显式、已确认的项目画像生成用户级优先级，不读取个人全局画像 |
 | la_product_service | framework-neutral 产品服务：项目 / 画像 / 种子 / 推荐 / 决策 / 用量 |
+| la_product_auth / la_product_web | 邀请制账户、服务端会话、受保护 HTTP API 与每日网页总览 |
 | tests/la_acceptance | golden path + 5 条用户路径 + 13 项故障恢复（临时环境） |
 
 校内试点采用“公共论文事实 + 用户私有上下文”模型：`works` 等论文元数据继续全局去重；研究项目、画像、种子关系、推荐、反馈、PDF/笔记对象键和模型用量全部携带 `owner_user_id`，并通过 owner-scoped repository 访问。首轮在 SQLite 验证边界，服务端部署时迁移至 PostgreSQL 与对象存储。
+
+Web 试点层不接受客户端 owner 字段：会话 cookie 只保存随机 token，数据库保存其哈希与所属用户；写操作额外校验 CSRF token。个人版 CLI、Obsidian 总览和 launchd 路径不调用 Web 层，保持独立运行。
 
 ## 3. canonical 语义（唯一事实版本）
 

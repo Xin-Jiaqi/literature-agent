@@ -1,0 +1,4 @@
+# Optional campus-pilot web surface. Personal alpha remains stdlib-only.
+Flask==3.1.3
+pydantic==2.13.4
+bcrypt==4.2.1

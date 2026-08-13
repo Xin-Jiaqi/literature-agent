@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Literature Agent · 今日文献</title>
+  <meta name="description" content="每天只把真正值得看的论文送到你面前。">
+  <link rel="stylesheet" href="/static/app.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="Literature Agent 首页">
+      <span class="brand-mark">LA</span>
+      <span>Literature Agent</span>
+    </a>
+    <div class="account" id="account" hidden>
+      <span id="account-name"></span>
+      <button class="quiet" id="logout" type="button">退出</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="auth-shell" id="auth-view">
+      <div class="auth-copy">
+        <p class="eyebrow">清华校内邀请试点</p>
+        <h1>每天少看一点，<br>但更值得看。</h1>
+        <p class="lead">描述正在推进的研究，系统会从新增论文中筛出与你真正相关的几篇。</p>
+        <ul class="trust-list">
+          <li>公开元数据统一发现与去重</li>
+          <li>研究画像、反馈与文件只属于你</li>
+          <li>不收集清华账号或出版商密码</li>
+        </ul>
+      </div>
+
+      <div class="auth-card">
+        <div class="tabs" role="tablist" aria-label="账户入口">
+          <button class="tab active" id="login-tab" role="tab" aria-selected="true">登录</button>
+          <button class="tab" id="register-tab" role="tab" aria-selected="false">接受邀请</button>
+        </div>
+        <form id="login-form" class="form-stack">
+          <label>邮箱<input type="email" name="email" autocomplete="email" required></label>
+          <label>密码<input type="password" name="password" autocomplete="current-password" minlength="12" required></label>
+          <button class="primary" type="submit">进入今日文献</button>
+        </form>
+        <form id="register-form" class="form-stack" hidden>
+          <label>邀请码<input name="invite_code" autocomplete="one-time-code" required></label>
+          <label>姓名或称呼<input name="display_name" autocomplete="name" maxlength="100"></label>
+          <label>邮箱<input type="email" name="email" autocomplete="email" required></label>
+          <label>设置密码<input type="password" name="password" autocomplete="new-password" minlength="12" required></label>
+          <p class="hint">至少 12 个字符。邀请码仅用于控制首轮试点范围。</p>
+          <button class="primary" type="submit">创建试点账户</button>
+        </form>
+        <p class="form-error" id="auth-error" role="alert"></p>
+      </div>
+    </section>
+
+    <section id="app-view" hidden>
+      <div class="hero-row">
+        <div>
+          <p class="eyebrow" id="today-label">今日文献</p>
+          <h1 class="dashboard-title">把注意力留给<br>真正推进项目的论文。</h1>
+        </div>
+        <div class="cost-card">
+          <span>本期模型成本</span>
+          <strong id="usage-cost">¥0.00</strong>
+          <small>试点实时估算</small>
+        </div>
+      </div>
+
+      <section class="setup-card" id="setup-view" hidden>
+        <div>
+          <p class="eyebrow">首次设置 · 约 5 分钟</p>
+          <h2>先告诉我们，你现在在推进什么。</h2>
+          <p>画像可以随时调整。这里不需要上传未公开实验数据。</p>
+        </div>
+        <form id="setup-form" class="setup-grid">
+          <label>项目名称<input name="title" placeholder="例如：滑移铁电中的 shift current" required maxlength="200"></label>
+          <label>每天最多重点推荐<input type="number" name="daily_attention_limit" value="3" min="1" max="20" required></label>
+          <label class="full">项目说明<textarea name="description" rows="4" placeholder="目前的科学问题、材料体系、方法和最希望及时看到的进展" required maxlength="8000"></textarea></label>
+          <label class="full">核心关注词<textarea name="include_terms" rows="3" placeholder="每行一个，例如：&#10;shift current&#10;sliding ferroelectric&#10;bulk photovoltaic" required></textarea></label>
+          <label class="full">排除主题（可选）<textarea name="exclude_terms" rows="2" placeholder="每行一个，例如：battery"></textarea></label>
+          <button class="primary" type="submit">建立研究画像</button>
+          <p class="form-error" id="setup-error" role="alert"></p>
+        </form>
+      </section>
+
+      <section id="dashboard" hidden>
+        <div class="dashboard-grid">
+          <aside class="project-panel">
+            <p class="eyebrow">研究项目</p>
+            <div id="project-list"></div>
+            <button class="quiet wide" id="refresh-recommendations" type="button">用最新论文刷新</button>
+            <p class="hint">当前试点从公共论文库的最新记录中筛选；Zotero 导入将在后续接入。</p>
+          </aside>
+
+          <section class="feed-panel">
+            <div class="feed-head">
+              <div>
+                <p class="eyebrow">今日注意力预算</p>
+                <h2 id="feed-title">今天值得看的论文</h2>
+              </div>
+              <span class="count-pill" id="feed-count">0 篇</span>
+            </div>
+            <div id="feed" class="paper-list"></div>
+            <div id="empty-feed" class="empty-state" hidden>
+              <p>今天还没有生成推荐。</p>
+              <button class="primary" id="empty-refresh" type="button">从最新论文开始筛选</button>
+            </div>
+          </section>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+</body>
+</html>

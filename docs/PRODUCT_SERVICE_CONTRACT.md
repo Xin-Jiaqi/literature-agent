@@ -1,6 +1,6 @@
-# 校内试点产品服务契约（Week 1）
+# 校内试点产品服务契约
 
-> 本文定义 Web 路由下一步应调用的应用服务边界。当前实现是 framework-neutral Python service，不开放公网，也不包含登录实现。
+> framework-neutral Python service 仍是领域边界；邀请制 HTTP 接口和每日网页总览已在本地试点层实现。当前实现尚未部署公网。
 
 ## 1. 信任边界
 
@@ -44,7 +44,7 @@ Week 1 使用确定性关键词评分验证多用户边界：
 
 该算法不是最终推荐质量方案。后续可以在保持输入输出契约不变的前提下，接入种子论文相似度、领域规则、embedding 或模型复核。任何模型输出仍只是候选数据，最终枚举、额度和权限由代码约束。
 
-## 5. 后续 HTTP 映射建议
+## 5. 已实现的 HTTP 映射
 
 ```text
 POST /v1/projects
@@ -56,4 +56,15 @@ POST /v1/recommendations/{recommendation_id}/decision
 GET  /v1/usage/summary
 ```
 
-路由上线前仍需补齐：邀请登录、httpOnly 会话、CSRF/CORS、安全响应头、速率限制、统一错误格式和分页。当前服务契约不应被误认为已经具备公网安全条件。
+身份接口：
+
+```text
+POST /v1/auth/register
+POST /v1/auth/login
+POST /v1/auth/logout
+GET  /v1/me
+```
+
+当前安全基线：邮箱绑定且限时的邀请码、bcrypt 密码哈希、服务端随机会话、httpOnly + SameSite=Strict cookie、双提交 CSRF token、登录失败限制、安全响应头、请求体上限、严格字段白名单和跨用户验收。
+
+正式公网部署前仍需完成：HTTPS 反向代理、生产数据库迁移、集中速率限制、多实例会话策略、密钥轮换流程、备份恢复演练、依赖审计和真实域名下的浏览器安全测试。
