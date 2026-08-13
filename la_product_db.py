@@ -95,6 +95,8 @@ CREATE TABLE IF NOT EXISTS user_recommendations (
   work_id TEXT NOT NULL REFERENCES works(work_id) ON DELETE RESTRICT,
   recommendation_date TEXT NOT NULL,
   priority TEXT NOT NULL CHECK (priority IN ('MUST', 'WEEKLY', 'RADAR', 'DROP')),
+  profile_revision INTEGER NOT NULL DEFAULT 1 CHECK (profile_revision >= 1),
+  rank_score INTEGER NOT NULL DEFAULT 0,
   reason TEXT NOT NULL DEFAULT '',
   disposition TEXT CHECK (disposition IS NULL OR disposition IN ('read', 'later', 'ignore')),
   user_note TEXT NOT NULL DEFAULT '',
@@ -238,21 +240,27 @@ def _new_id(prefix):
 
 
 def _clean_id(value, field):
-    value = (value or "").strip()
+    if not isinstance(value, str):
+        raise ValidationError(f"invalid {field}")
+    value = value.strip()
     if not _ID_RE.fullmatch(value):
         raise ValidationError(f"invalid {field}")
     return value
 
 
 def _clean_text(value, field, minimum=1, maximum=4000):
-    value = (value or "").strip()
+    if not isinstance(value, str):
+        raise ValidationError(f"invalid {field}")
+    value = value.strip()
     if not minimum <= len(value) <= maximum:
         raise ValidationError(f"{field} must be {minimum}-{maximum} characters")
     return value
 
 
 def _clean_work_id(value):
-    value = (value or "").strip()
+    if not isinstance(value, str):
+        raise ValidationError("invalid work_id")
+    value = value.strip()
     if not _WORK_ID_RE.fullmatch(value):
         raise ValidationError("invalid work_id")
     return value
@@ -262,6 +270,17 @@ def migrate(conn):
     """Install the additive pilot schema without changing personal-alpha data."""
     conn.execute("PRAGMA foreign_keys=ON")
     conn.executescript(SCHEMA)
+    recommendation_columns = {
+        row["name"] for row in conn.execute("PRAGMA table_info(user_recommendations)")
+    }
+    if "profile_revision" not in recommendation_columns:
+        conn.execute(
+            "ALTER TABLE user_recommendations ADD COLUMN profile_revision INTEGER NOT NULL DEFAULT 1"
+        )
+    if "rank_score" not in recommendation_columns:
+        conn.execute(
+            "ALTER TABLE user_recommendations ADD COLUMN rank_score INTEGER NOT NULL DEFAULT 0"
+        )
     conn.commit()
 
 
@@ -274,7 +293,9 @@ class ProductStore:
         migrate(conn)
 
     def create_user(self, email, display_name="", user_id=None):
-        email = (email or "").strip().lower()
+        if not isinstance(email, str):
+            raise ValidationError("invalid email")
+        email = email.strip().lower()
         if len(email) > 254 or not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email):
             raise ValidationError("invalid email")
         display_name = _clean_text(display_name, "display_name", minimum=0, maximum=100)
@@ -365,7 +386,8 @@ class ProductStore:
             (owner_user_id, project_id),
         ).fetchall()
 
-    def add_recommendation(self, owner_user_id, project_id, work_id, recommendation_date, priority, reason=""):
+    def add_recommendation(self, owner_user_id, project_id, work_id, recommendation_date, priority,
+                           reason="", profile_revision=1, rank_score=0):
         self._require_project(owner_user_id, project_id)
         work_id = self._require_work(work_id)
         if priority not in PRIORITIES:
@@ -374,14 +396,18 @@ class ProductStore:
             date.fromisoformat(recommendation_date)
         except (TypeError, ValueError):
             raise ValidationError("recommendation_date must be YYYY-MM-DD") from None
-        reason = _clean_text(reason, "reason", minimum=0, maximum=4000)
+        reason = _clean_text(reason, "reason", minimum=0, maximum=12000)
+        if not isinstance(profile_revision, int) or profile_revision < 1:
+            raise ValidationError("invalid profile_revision")
+        if not isinstance(rank_score, int):
+            raise ValidationError("invalid rank_score")
         recommendation_id = _new_id("rec")
         self.conn.execute(
             "INSERT INTO user_recommendations "
-            "(recommendation_id,owner_user_id,project_id,work_id,recommendation_date,priority,reason,created_at) "
-            "VALUES (?,?,?,?,?,?,?,?)",
+            "(recommendation_id,owner_user_id,project_id,work_id,recommendation_date,priority,"
+            "profile_revision,rank_score,reason,created_at) VALUES (?,?,?,?,?,?,?,?,?,?)",
             (recommendation_id, owner_user_id, project_id, work_id,
-             recommendation_date, priority, reason, now_iso()),
+             recommendation_date, priority, profile_revision, rank_score, reason, now_iso()),
         )
         self.conn.commit()
         return recommendation_id
@@ -410,9 +436,15 @@ class ProductStore:
         )
         args = [owner_user_id]
         if recommendation_date:
+            try:
+                date.fromisoformat(recommendation_date)
+            except (TypeError, ValueError):
+                raise ValidationError("recommendation_date must be YYYY-MM-DD") from None
             sql += " AND r.recommendation_date=?"
             args.append(recommendation_date)
-        sql += " ORDER BY r.recommendation_date DESC, r.created_at, r.recommendation_id"
+        sql += (" ORDER BY r.recommendation_date DESC, "
+                "CASE r.priority WHEN 'MUST' THEN 4 WHEN 'WEEKLY' THEN 3 "
+                "WHEN 'RADAR' THEN 2 ELSE 1 END DESC, r.rank_score DESC, r.recommendation_id")
         return self.conn.execute(sql, args).fetchall()
 
     def add_private_asset(self, owner_user_id, project_id, kind, object_key, work_id=None,
@@ -510,6 +542,6 @@ class ProductStore:
 
     @staticmethod
     def _clean_terms(terms, field):
-        if not isinstance(terms, list) or len(terms) > 100:
+        if not isinstance(terms, list) or len(terms) > 50:
             raise ValidationError(f"invalid {field}")
-        return [_clean_text(term, field, maximum=200) for term in terms]
+        return [_clean_text(term, field, maximum=100) for term in terms]
