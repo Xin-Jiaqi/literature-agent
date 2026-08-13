@@ -49,7 +49,10 @@ literature-agent/
 | la_digest / la_monthly | daily/weekly/monthly 工程报告 |
 | la_handoff | HANDOFF.md + PROJECT_STATE.json 自动刷新 |
 | la_audit | 快速一致性审计（18 项） |
+| la_product_db | 校内试点多用户数据边界：用户 / 项目 / 画像 / 推荐 / 私有资产 / 用量 |
 | tests/la_acceptance | golden path + 5 条用户路径 + 13 项故障恢复（临时环境） |
+
+校内试点采用“公共论文事实 + 用户私有上下文”模型：`works` 等论文元数据继续全局去重；研究项目、画像、种子关系、推荐、反馈、PDF/笔记对象键和模型用量全部携带 `owner_user_id`，并通过 owner-scoped repository 访问。首轮在 SQLite 验证边界，服务端部署时迁移至 PostgreSQL 与对象存储。
 
 ## 3. canonical 语义（唯一事实版本）
 

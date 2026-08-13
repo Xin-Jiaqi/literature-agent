@@ -260,6 +260,8 @@ def connect(db_path=DB_PATH):
         migrate(conn)
     except Exception:
         pass
+    from la_product_db import migrate as migrate_product
+    migrate_product(conn)
     return conn
 
 
