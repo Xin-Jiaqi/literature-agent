@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## 2026-08-13 — 校内邀请试点可直接试用
+
+### Added
+- 增加生产 WSGI 运行入口、Cloudflare HTTPS 试用隧道与 launchd 常驻配置。
+- 增加限时/限次数邀请码列表与撤销、用户级联删除、SQLite 在线备份和完整性校验。
+- 增加隔离 Web 虚拟环境与管理员/备份自动验收。
+
+### Security
+- 公网入口继续强制 Secure + httpOnly 会话、SameSite、CSRF、CSP 与 HSTS。
+- Waitress 只监听 localhost，代理头只信任本机一跳；Quick Tunnel 不开放公网入站端口。
+
 ## 2026-08-13 — 校内试点多用户数据边界
 
 - 新增 additive 产品数据层，现有个人版论文库与工作流保持兼容。

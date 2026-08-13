@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.jiaqi.literature-agent-pilot-backup</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>__BASE__/.venv/bin/python</string>
+        <string>__BASE__/product_admin.py</string>
+        <string>backup</string>
+        <string>--keep</string>
+        <string>14</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>__BASE__</string>
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>2</integer>
+        <key>Minute</key>
+        <integer>30</integer>
+    </dict>
+    <key>StandardOutPath</key>
+    <string>__LOG_DIR__/pilot-backup.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>__LOG_DIR__/pilot-backup.err.log</string>
+</dict>
+</plist>

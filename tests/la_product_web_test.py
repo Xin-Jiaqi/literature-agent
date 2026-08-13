@@ -52,6 +52,10 @@ def run_all():
         assert alice.get("/v1/me").status_code == 401
         assert "default-src 'self'" in home.headers["content-security-policy"]
         assert home.headers["x-frame-options"] == "DENY"
+        assert "strict-transport-security" not in home.headers
+        assert home.headers["cache-control"] == "no-store"
+        secure_home = create_app(db_path, secure_cookies=True).test_client().get("/")
+        assert secure_home.headers["strict-transport-security"].startswith("max-age=")
 
         # Invitation is email-bound and single-use.
         wrong = bob.post("/v1/auth/register", json={

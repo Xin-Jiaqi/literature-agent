@@ -1,6 +1,6 @@
 # 校内试点产品服务契约
 
-> framework-neutral Python service 仍是领域边界；邀请制 HTTP 接口和每日网页总览已在本地试点层实现。当前实现尚未部署公网。
+> framework-neutral Python service 仍是领域边界；邀请制 HTTP 接口和每日网页总览已完成公网 HTTPS 小规模试用验收。
 
 ## 1. 信任边界
 
@@ -67,4 +67,8 @@ GET  /v1/me
 
 当前安全基线：邮箱绑定且限时的邀请码、bcrypt 密码哈希、服务端随机会话、httpOnly + SameSite=Strict cookie、双提交 CSRF token、登录失败限制、安全响应头、请求体上限、严格字段白名单和跨用户验收。
 
-正式公网部署前仍需完成：HTTPS 反向代理、生产数据库迁移、集中速率限制、多实例会话策略、密钥轮换流程、备份恢复演练、依赖审计和真实域名下的浏览器安全测试。
+当前小规模试点使用本机 Waitress + Cloudflare Quick Tunnel（HTTPS），SQLite 在线备份每日校验并保留
+14 份；邀请码可限时、限次数、绑定邮箱并撤销，管理端可级联删除单个用户私有数据。
+
+扩大到长期公网服务前仍需完成：稳定域名或具名 Tunnel、托管 PostgreSQL、跨实例集中速率限制、
+多实例会话策略、用户自助导出/删除、错误监控、备份恢复演练与真实域名浏览器安全测试。

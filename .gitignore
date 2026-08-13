@@ -2,6 +2,7 @@
 __pycache__/
 *.pyc
 *.pyo
+.venv/
 
 # 本机配置（含 Zotero API key 与个人路径）——绝不提交
 config/local.json
@@ -31,3 +32,7 @@ docs/CODEX_HANDOFF.md
 # 系统
 .DS_Store
 .env
+.env.*
+!.env.example
+*.pem
+*.key

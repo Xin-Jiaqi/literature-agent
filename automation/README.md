@@ -1,6 +1,6 @@
 # automation — macOS LaunchAgent 定时运行
 
-## 两个 agent
+## 个人版两个 agent
 
 1. **每日 daily**：`com.jiaqi.literature-agent.plist`
    - 每天 **07:00 / 08:00 / 09:00 / 10:00** 各跑一次 `literature_agent.py daily`。
@@ -37,3 +37,27 @@ launchctl kickstart -k gui/$(id -u)/com.jiaqi.literature-agent-sync
 - 建议先手动跑通 `python3 literature_agent.py daily` 再启用。
 - `daily` 做的事：collect → dedup → screen → process（PDF/SI）→ A 队列准备 → digest（v4 用户向）→ 总览 → zotero-export → handoff。
   A 的生成本身由 Codex/ChatGPT executor 完成，不在 Python 后台内调用模型。
+
+## 邀请试点服务
+
+首次安装 Web 依赖后，可启用三个独立的本机服务：
+
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements-web.txt
+./automation/install_pilot_service.sh
+```
+
+- `pilot`：只监听本机 `127.0.0.1:8765`，使用生产 WSGI server；
+- `tunnel`：通过 Cloudflare Quick Tunnel 提供 HTTPS 试用地址，不开放路由器入站端口；
+- `pilot-backup`：每天 02:30 做 SQLite 一致性备份并校验，保留 14 份。
+
+Quick Tunnel 每次重启会更换地址且无可用性保证，只适合首轮熟人测试。当前地址可在
+`~/Library/Logs/literature-agent/tunnel.err.log` 搜索 `trycloudflare.com`。正式扩展时应换为具名
+Tunnel + 自有域名，或迁移到托管服务器。
+
+停止服务不会删除数据库和备份：
+
+```bash
+./automation/uninstall_pilot_service.sh
+```
