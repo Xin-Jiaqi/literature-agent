@@ -63,11 +63,8 @@
 
 这两个维度分开以后，逻辑清楚很多。`MUST` 表示机器对“注意力优先级”的判断；`A` 表示论文进入阅读流程后的第一阶段。过去容易混在一起的 S/A/B/C 分级，也因此被彻底拆开。
 
-<!-- 【图 2｜建议制作：主流程图】
-建议文件：docs/assets/v0.1.0/02-workflow-overview.png
-内容：External sources → Python backend → Codex/ChatGPT → Obsidian daily overview → Zotero / B→C→D。
-建议视觉：横向 4 个角色分区，8–10 个节点，不要把所有模块名都画进去。
-这张图后续可以由我直接根据最终文章生成，也可以从 GitHub 流程图导出。 -->
+![图2｜文献雷达主流程](../assets/v0.1.0/02-workflow-overview.png)
+*图2：一条完整的主流程。分区从上到下：外部文献源、literature-agent（Python 后台）、Codex/ChatGPT（executor）、Obsidian 用户前台、归档与深读（Zotero / B→C→D）；用户决定 read / later / ignore 后，进入 Zotero 归档或 B→C→D 深读。*
 
 ## 发现层：先把“可能重要的文献”收进来
 
