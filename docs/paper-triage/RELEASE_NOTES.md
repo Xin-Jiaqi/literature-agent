@@ -2,6 +2,8 @@
 
 Free, MIT-licensed instructions for assessing one scientific paper against a research goal. This release is independent of the literature-agent application version.
 
+[Get started, read examples and inspect the source](https://github.com/Xin-Jiaqi/literature-agent/tree/main/docs/paper-triage).
+
 ## Included
 
 - A six-section reading decision with source anchors, uncertainty and a concrete next action.
@@ -15,6 +17,6 @@ Free, MIT-licensed instructions for assessing one scientific paper against a res
 
 Skill frontmatter, archive allowlist/integrity, deterministic builds, extracted file equality, overwrite refusal and local links were checked. The real-paper examples are curated authoring runs, not independent accuracy benchmarks. Fresh-session automatic activation, other hosts, external adoption and Agensi execution are not yet validated.
 
-The existing full-application selftest requires ignored local screening gold data and does not pass in a clean public checkout without that fixture. The standalone skill and packager do not need that data. See [validation details](VALIDATION.md).
+The existing full-application selftest requires ignored local screening gold data and does not pass in a clean public checkout without that fixture. The standalone skill and packager do not need that data. See [validation details](https://github.com/Xin-Jiaqi/literature-agent/blob/main/docs/paper-triage/VALIDATION.md).
 
 Your agent's model charges and data policies continue to apply. No backend, new model endpoint or telemetry is introduced.

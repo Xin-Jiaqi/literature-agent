@@ -10,6 +10,8 @@ Give your agent **one scientific paper + your research goal**. Receive a concise
 
 **Free · MIT · No new API keys required by the skill · No hosted service**
 
+[Download 0.1.0](https://github.com/Xin-Jiaqi/literature-agent/releases/tag/paper-triage-v0.1.0) · [Skill instructions](../../skills/paper-triage/SKILL.md) · [Validation](VALIDATION.md)
+
 ## Try it without installing anything
 
 1. Download or open [`SKILL.md`](../../skills/paper-triage/SKILL.md).

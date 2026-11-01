@@ -38,7 +38,9 @@
 ## 发布状态与账号步骤
 
 - 从公开 main 独立准备 `codex/paper-triage-launch`，仅提取技能、文档、发现入口和打包工具，未包含 campus pilot 开发。
-- GitHub PR／发布链接：提交后补记。
+- GitHub [PR #1](https://github.com/Xin-Jiaqi/literature-agent/pull/1) 已合并；合并提交 `d13f69ef87d13202a8a782efd0a86acbdb03c041`。
+- [Paper Triage 0.1.0](https://github.com/Xin-Jiaqi/literature-agent/releases/tag/paper-triage-v0.1.0) 已公开发布，附件 `paper-triage-v0.1.0.zip` 为 3243 字节，GitHub 返回的 SHA256 与本地包一致。未将其设为整套 literature-agent 应用的新版本。
+- staged diff 的 gitleaks 扫描未发现 secret；作者完成发布内容与打包脚本复核（非独立 reviewer）。handoff 已于北京时间 15:56:29 刷新。
 - Agensi：浏览器访问提交页后重定向到 Sign In，尚未登录、上传或提交；平台名称是否可用未确认。
 - 账号步骤集中在材料完成后处理：用户登录自己的 Agensi 账号；如需注册或接受新协议，由用户处理。完成后可以继续填入已准备的免费上架材料。
 - 邮件、私信、社交帖子均未发送；公开 GitHub 发布与人际传播分开记录。

@@ -62,7 +62,7 @@ Use cases: decide whether to read a paper; locate decisive evidence; plan a jour
 - Documentation: https://github.com/Xin-Jiaqi/literature-agent/tree/main/docs/paper-triage
 - Source: https://github.com/Xin-Jiaqi/literature-agent/tree/main/skills/paper-triage
 
-Links above become usable once the dedicated change is merged into main. Do not submit broken links from an unmerged branch. If the platform name is taken, use “Literature Agent Paper Triage”; keep the local skill identifier unchanged.
+GitHub documentation and source links above are public on main. The versioned ZIP is also available at https://github.com/Xin-Jiaqi/literature-agent/releases/tag/paper-triage-v0.1.0 . If the platform name is taken, use “Literature Agent Paper Triage”; keep the local skill identifier unchanged.
 
 ## Account handoff
 
