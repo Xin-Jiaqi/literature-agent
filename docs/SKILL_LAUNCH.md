@@ -41,8 +41,8 @@
 - GitHub [PR #1](https://github.com/Xin-Jiaqi/literature-agent/pull/1) 已合并；合并提交 `d13f69ef87d13202a8a782efd0a86acbdb03c041`。
 - [Paper Triage 0.1.0](https://github.com/Xin-Jiaqi/literature-agent/releases/tag/paper-triage-v0.1.0) 已公开发布，附件 `paper-triage-v0.1.0.zip` 为 3243 字节，GitHub 返回的 SHA256 与本地包一致。未将其设为整套 literature-agent 应用的新版本。
 - staged diff 的 gitleaks 扫描未发现 secret；作者完成发布内容与打包脚本复核（非独立 reviewer）。handoff 已于北京时间 15:56:29 刷新。
-- Agensi：浏览器访问提交页后重定向到 Sign In，尚未登录、上传或提交；平台名称是否可用未确认。
-- 账号步骤集中在材料完成后处理：用户登录自己的 Agensi 账号；如需注册或接受新协议，由用户处理。完成后可以继续填入已准备的免费上架材料。
+- Agensi：用户已登录；Creator Mode 与公开资料已设置。Paper Triage 已正式提交审核，后台显示 **Pending Review / In review / Free**，统计为 1 Total Skills、0 Live、1 Pending；尚未获批公开上线。私有回执与截图保存在忽略的 `reports/release/agensi-submission-progress.json` 和 `reports/release/agensi-submitted.jpg`。
+- Mac 解锁后已完成标签、使用场景与最终信息复核并确认提交。后续只需等待平台审核；未代用户接受新协议，未设置收款或付费功能。
 - 邮件、私信、社交帖子均未发送；公开 GitHub 发布与人际传播分开记录。
 
 平台要求核对日期：2026-11-01；依据 [打包要求](https://www.agensi.io/docs/packaging)、[提交表单](https://www.agensi.io/docs/submit-on-the-website)。

@@ -1,6 +1,6 @@
 # Agensi submission copy
 
-Prepared 2026-11-01; not submitted. Free listing only. Field limits checked against [Submit on the website](https://www.agensi.io/docs/submit-on-the-website). A signed-in creator account is required; the available browser redirected to Sign In.
+Submitted for review on 2026-11-01. Creator Studio confirms **Pending Review / In review / Free**; the skill is not live yet. Field limits were checked against [Submit on the website](https://www.agensi.io/docs/submit-on-the-website). The materials below are the prepared submission copy; platform-generated claims and demo text were cleared before the verified content was entered.
 
 ## Name
 
