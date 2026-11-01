@@ -33,6 +33,14 @@
 | canonical A | `每日文献/_文献包/<work_id>/`（A.md + paper.pdf） |
 | 用户确认后的正式文献库 | Zotero |
 
+## Standalone paper-reading skill / 单篇论文阅读
+
+**[Paper Triage](docs/paper-triage/README.md)** — one paper + your research goal → a reading decision with traceable evidence, limitations and a concrete next step. Free and open source; use it without installing the full radar system.
+
+把一篇论文和研究目标交给智能体，得到贡献判断、证据位置、结论边界及下一步阅读动作。已提供[理论案例](docs/paper-triage/examples/theory.md)、[实验案例](docs/paper-triage/examples/experiment.md)与[验证范围](docs/paper-triage/VALIDATION.md)。案例为 Codex 内制作并核对的展示，不代表独立评测或跨智能体兼容性认证。
+
+→ [Try it / 使用方法](docs/paper-triage/README.md#try-it-without-installing-anything) · [Skill source](skills/paper-triage/SKILL.md)
+
 ## Requirements / 环境要求
 
 - Python 3.9+（开发/验证环境：macOS + Python 3.12）
